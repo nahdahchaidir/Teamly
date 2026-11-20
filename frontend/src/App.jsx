@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import api from './api';
 import { generateProjectIdea } from './ideaGenerator';
-import LandingPage from './LandingPage';
+import WelcomeScreen from './WelcomeScreen';
 import AuthPage from './AuthPage';
 
 // ================= SEED DEMO DATA =================
@@ -377,7 +377,7 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem('tp_token'));
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('tp_user') || 'null'));
   const [demo, setDemo] = useState(!token);
-  const [currentView, setCurrentView] = useState('workspace'); // 'workspace' | 'landing' | 'auth'
+  const [currentView, setCurrentView] = useState('welcome'); // 'welcome' | 'workspace' | 'auth'
   const [authInitialMode, setAuthInitialMode] = useState('login');
 
   // Initialize demo data with localStorage persistence
@@ -1035,19 +1035,19 @@ export default function App() {
     }
   };
 
-  // ================= VIEW SWITCHER (LANDING & AUTH PAGES) =================
-  if (currentView === 'landing') {
+  // ================= VIEW SWITCHER (WELCOME & AUTH PAGES) =================
+  if (currentView === 'welcome') {
     return (
-      <LandingPage
-        onOpenApp={() => setCurrentView('workspace')}
-        onOpenAuth={(m) => {
-          setAuthInitialMode(m || 'login');
-          setCurrentView('auth');
-        }}
+      <WelcomeScreen
+        onOpenWorkspace={() => setCurrentView('workspace')}
         onStartSurvey={() => {
           setActiveTab('generator');
           setSurveyStep(1);
           setCurrentView('workspace');
+        }}
+        onOpenAuth={(m) => {
+          setAuthInitialMode(m || 'login');
+          setCurrentView('auth');
         }}
       />
     );
@@ -1064,7 +1064,7 @@ export default function App() {
           setCurrentView('workspace');
           notify('Berhasil masuk ke akun!');
         }}
-        onGoToLanding={() => setCurrentView('landing')}
+        onGoToLanding={() => setCurrentView('welcome')}
         onEnterDemo={() => {
           setDemo(true);
           setCurrentView('workspace');
@@ -1079,9 +1079,9 @@ export default function App() {
       {/* Sidebar with Visible Text Labels */}
       <aside className={`teamly-sidebar ${mobileMenu ? 'open' : ''}`}>
         <div className="brand-header">
-          <div className="brand-logo" onClick={() => setActiveTab('dashboard')}>
+          <div className="brand-logo" onClick={() => setCurrentView('welcome')} title="Kembali ke Halaman Awal">
             <div className="brand-icon">
-              <Sparkles size={18} />
+              <Rocket size={18} />
             </div>
             <span className="brand-name">Teamly</span>
             <span className="brand-badge">AI</span>
@@ -1146,7 +1146,7 @@ export default function App() {
                     setProjectDropdown(false);
                   }}
                 >
-                  <Sparkles size={14} color="#6366f1" />
+                  <Sparkles size={14} color="#ea580c" />
                   <span>💡 Survey Ide Proyek AI</span>
                 </button>
                 <button
@@ -1210,12 +1210,12 @@ export default function App() {
           </button>
 
           <button
-            className="nav-btn nav-landing-btn"
-            onClick={() => setCurrentView('landing')}
-            title="Lihat Landing Page Aplikasi"
+            className="nav-btn nav-welcome-btn"
+            onClick={() => setCurrentView('welcome')}
+            title="Kembali ke Halaman Awal"
           >
-            <Globe size={18} />
-            <span>Landing Page</span>
+            <Rocket size={18} />
+            <span>Halaman Awal</span>
           </button>
         </nav>
 
