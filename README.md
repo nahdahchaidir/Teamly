@@ -49,7 +49,7 @@ uvicorn app.main:app --reload --port 8000
 - API Backend aktif di: `http://localhost:8000`
 - Dokumentasi Swagger UI: `http://localhost:8000/docs`
 
-### 2. Frontend (React + Vite)
+### 2. Frontend Web (React + Vite)
 Buka terminal kedua dan jalankan:
 ```bash
 cd frontend
@@ -59,6 +59,25 @@ npm run dev
 - Buka browser di: `http://localhost:5173`
 
 *(Aplikasi langsung dapat dieksplorasi melalui **Mode Demo**).*
+
+### 3. Aplikasi Mobile Android (Capacitor) 📱
+Project ini sudah terkonfigurasi penuh sebagai **Aplikasi Android Native** (`com.teamly.app`).
+
+Untuk membuka di **Android Studio** atau membuat file **APK**:
+```bash
+cd frontend
+
+# Sinkronisasi aset terbaru ke Android native project
+npm run cap:sync
+
+# Buka langsung di Android Studio
+npx cap open android
+```
+
+> **Untuk Generate File APK (.apk):**
+> 1. Jalankan `npx cap open android` untuk membuka proyek di Android Studio.
+> 2. Di Android Studio, pilih menu **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+> 3. File APK siap dibagikan dan di-install di HP Android Anda atau teman kelompok!
 
 ---
 

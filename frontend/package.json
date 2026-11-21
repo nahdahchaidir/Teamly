@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "cap:sync": "vite build && cap sync android",
+    "cap:open": "cap open android",
+    "cap:run": "cap run android"
   },
   "browserslist": [
     "> 0.5%",
@@ -14,6 +17,9 @@
     "not dead"
   ],
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "axios": "^1.8.4",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",

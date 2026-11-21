@@ -2647,6 +2647,10 @@ button {
   }
 }
 
+.mobile-bottom-nav {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .teamly-sidebar {
     transform: translateX(-100%);
@@ -2657,9 +2661,53 @@ button {
   }
   .teamly-main {
     margin-left: 0;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 10px));
   }
   .mobile-toggle-btn, .mobile-close-btn {
     display: block;
+  }
+
+  /* Mobile Bottom Navigation Bar */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -3px 12px rgba(15, 23, 42, 0.06);
+    z-index: 99;
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .mobile-nav-item.active {
+    color: #ea580c;
+  }
+
+  .mobile-nav-item.active svg {
+    stroke: #ea580c;
   }
 }
 

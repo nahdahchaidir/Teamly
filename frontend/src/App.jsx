@@ -2593,6 +2593,50 @@ export default function App() {
         </div>
       )}
 
+      {/* Mobile Bottom Navigation Bar (Visible only on mobile devices) */}
+      <nav className="mobile-bottom-nav">
+        <button
+          type="button"
+          className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          <LayoutDashboard size={20} />
+          <span>Dashboard</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-nav-item ${activeTab === 'generator' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('generator'); setSurveyStep(1); }}
+        >
+          <Lightbulb size={20} />
+          <span>Ide AI</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-nav-item ${activeTab === 'tasks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tasks')}
+        >
+          <Kanban size={20} />
+          <span>Tugas</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-nav-item ${activeTab === 'team' ? 'active' : ''}`}
+          onClick={() => setActiveTab('team')}
+        >
+          <Users size={20} />
+          <span>Tim</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-nav-item ${activeTab === 'ai' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ai')}
+        >
+          <Sparkles size={20} />
+          <span>AI Chat</span>
+        </button>
+      </nav>
+
       {/* Toast Notification */}
       {toast && (
         <div className="toast-notification">
