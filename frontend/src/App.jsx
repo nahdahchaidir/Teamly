@@ -38,7 +38,8 @@ import {
   Leaf,
   RotateCcw,
   Bell,
-  MoreHorizontal
+  MoreHorizontal,
+  MessageSquare
 } from 'lucide-react';
 import api from './api';
 import { generateProjectIdea } from './ideaGenerator';
@@ -453,10 +454,53 @@ export default function App() {
   const [generatedIdeas, setGeneratedIdeas] = useState(null);
   const [isAnalyzingIdeas, setIsAnalyzingIdeas] = useState(false);
 
-  // Filters & Search
+  // Guest & Auth status
+  const isGuest = !token || !user;
+  const [authModalPrompt, setAuthModalPrompt] = useState('');
+
+  // Filters, Search & Dropdowns
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+
+  // Activity & Email Notifications
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('tp_notifications');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [
+      {
+        id: 1,
+        title: 'Tugas Ditugaskan',
+        taskTitle: 'Implementasi API katalog menu & autentikasi JWT',
+        recipientName: 'Rizky Pratama',
+        action: 'Tugas sprint ditugaskan ke Rizky Pratama',
+        time: '15 menit lalu',
+        unread: true
+      },
+      {
+        id: 2,
+        title: 'Status Diperbarui',
+        taskTitle: 'Rancang wireframe katalog kantin & nomor antrean',
+        recipientName: 'Nadia Putri',
+        action: 'Status tugas diubah ke Selesai',
+        time: '1 jam lalu',
+        unread: true
+      },
+      {
+        id: 3,
+        title: 'Status Diperbarui',
+        taskTitle: 'Desain skema basis data pesanan & transaksi',
+        recipientName: 'Rizky Pratama',
+        action: 'Status tugas diubah ke Selesai',
+        time: '3 jam lalu',
+        unread: false
+      }
+    ];
+  });
 
   // Modals & Popovers
   const [modal, setModal] = useState(''); // 'task' | 'edit_task' | 'project' | 'member' | 'auth'
@@ -475,6 +519,110 @@ export default function App() {
   const notify = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
+  };
+
+  // Guard action for Guest (Guest can view, but must login to edit/add)
+  const requireLogin = (actionCallback, actionName = 'memakai aplikasi') => {
+    if (isGuest) {
+      setAuthModalPrompt(`Perlu login terlebih dahulu untuk ${actionName}. Silakan masuk atau buat akun baru.`);
+      setAuthInitialMode('login');
+      setCurrentView('auth');
+      return false;
+    }
+    if (actionCallback) actionCallback();
+    return true;
+  };
+
+  // Task Comments & Feedback State
+  const [taskComments, setTaskComments] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tp_task_comments');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [commentInput, setCommentInput] = useState('');
+
+  const handleAddComment = (taskId) => {
+    if (!requireLogin(null, 'memberikan feedback tugas')) return;
+    const cleanText = commentInput.trim();
+    if (!cleanText) return;
+
+    const authorName = user?.name || (isGuest ? 'Guest' : 'Anggota Tim');
+    const authorInitial = authorName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const newComment = {
+      id: 'cmt_' + Date.now(),
+      author: authorName,
+      initial: authorInitial,
+      text: cleanText,
+      timestamp: `Hari ini, ${timeStr}`
+    };
+
+    const updated = {
+      ...taskComments,
+      [taskId]: [...(taskComments[taskId] || []), newComment]
+    };
+
+    setTaskComments(updated);
+    try {
+      localStorage.setItem('tp_task_comments', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    setCommentInput('');
+    notify('Feedback berhasil dikirim!');
+
+    const targetTask = allTasks.find(t => t.id === taskId) || selectedTask;
+    if (targetTask) {
+      sendChangeNotification(
+        targetTask,
+        `${authorName} memberikan feedback: "${cleanText.length > 40 ? cleanText.slice(0, 40) + '...' : cleanText}"`,
+        targetTask.assignee
+      );
+    }
+  };
+
+  // Kirim notifikasi aktivitas tim
+  const sendChangeNotification = (taskOrTitle, actionText, assignedMemberOrName) => {
+    let member = null;
+    if (typeof assignedMemberOrName === 'object' && assignedMemberOrName !== null) {
+      member = assignedMemberOrName;
+    } else if (typeof assignedMemberOrName === 'string') {
+      member = currentProjectMembers.find(m => m.name === assignedMemberOrName);
+    }
+    const taskTitle = typeof taskOrTitle === 'object' ? taskOrTitle.title : taskOrTitle;
+    const recipientName = member ? member.name : (typeof assignedMemberOrName === 'string' ? assignedMemberOrName : 'Anggota Tim');
+
+    const newNotif = {
+      id: Date.now(),
+      title: 'Aktivitas Tugas',
+      taskTitle: taskTitle,
+      recipientName: recipientName,
+      action: actionText,
+      time: 'Baru saja',
+      unread: true
+    };
+
+    setNotifications(prev => {
+      const updated = [newNotif, ...prev.slice(0, 19)];
+      try { localStorage.setItem('tp_notifications', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    notify(`🔔 ${actionText}`);
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, unread: false }));
+      try { localStorage.setItem('tp_notifications', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    notify('Semua notifikasi ditandai telah dibaca');
   };
 
   // Persist demo state
@@ -581,6 +729,18 @@ export default function App() {
     });
   }, [currentProjectTasks, searchQuery, statusFilter, priorityFilter]);
 
+  // Instant live search matches
+  const searchMatches = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return currentProjectTasks.filter(t =>
+      t.title.toLowerCase().includes(q) ||
+      (t.description && t.description.toLowerCase().includes(q)) ||
+      (t.assignee && t.assignee.toLowerCase().includes(q)) ||
+      (t.category && t.category.toLowerCase().includes(q))
+    );
+  }, [currentProjectTasks, searchQuery]);
+
   // Upcoming Tasks
   const upcomingTasks = useMemo(() => {
     return currentProjectTasks
@@ -614,6 +774,7 @@ export default function App() {
   };
 
   const handleSelectIdea = async (idea) => {
+    if (!requireLogin(null, 'menerapkan ide proyek AI')) return;
     const newProjectPayload = {
       name: idea.name,
       description: idea.description,
@@ -706,12 +867,14 @@ export default function App() {
   // ================= TASK ACTIONS =================
 
   const toggleComplete = async (task) => {
+    if (!requireLogin(null, 'mengubah status tugas')) return;
     const nextStatus = task.status === 'done' ? 'todo' : 'done';
     await changeTaskStatus(task, nextStatus);
     notify(nextStatus === 'done' ? 'Tugas diselesaikan! 🎉' : 'Tugas dikembalikan ke Belum Mulai');
   };
 
   const moveTaskStatus = async (task, direction) => {
+    if (!requireLogin(null, 'memindahkan status tugas')) return;
     const currentIndex = statusOrder.indexOf(task.status);
     const nextIndex = currentIndex + direction;
     if (nextIndex < 0 || nextIndex >= statusOrder.length) return;
@@ -720,6 +883,7 @@ export default function App() {
   };
 
   const changeTaskStatus = async (task, newStatus) => {
+    if (!requireLogin(null, 'mengubah status tugas')) return;
     if (demo) {
       setAllTasks(allTasks.map(t => (t.id === task.id ? { ...t, status: newStatus } : t)));
     } else {
@@ -728,11 +892,18 @@ export default function App() {
         setAllTasks(allTasks.map(t => (t.id === task.id ? r.data : t)));
       } catch {
         notify('Gagal memperbarui status');
+        return;
       }
     }
+    sendChangeNotification(
+      task,
+      `Status tugas diubah menjadi "${statusMeta[newStatus]?.label || newStatus}"`,
+      task.assignee
+    );
   };
 
   const deleteTask = async (task) => {
+    if (!requireLogin(null, 'menghapus tugas')) return;
     if (!confirm(`Hapus tugas "${task.title}"?`)) return;
     if (demo) {
       setAllTasks(allTasks.filter(t => t.id !== task.id));
@@ -744,12 +915,15 @@ export default function App() {
         notify('Tugas dihapus');
       } catch {
         notify('Gagal menghapus tugas');
+        return;
       }
     }
+    sendChangeNotification(task, 'Tugas dihapus dari sprint proyek', task.assignee);
   };
 
   const handleAddTask = async (e) => {
     e.preventDefault();
+    if (!requireLogin(null, 'menambah tugas baru')) return;
     if (!currentProject) {
       notify('Pilih proyek terlebih dahulu');
       return;
@@ -789,11 +963,13 @@ export default function App() {
         return;
       }
     }
+    sendChangeNotification(payload.title, 'Tugas baru ditugaskan ke Anda', assignedMember || assigneeId);
     setModal('');
   };
 
   const handleUpdateTask = async (e) => {
     e.preventDefault();
+    if (!requireLogin(null, 'mengedit tugas')) return;
     if (!selectedTask) return;
     const f = new FormData(e.currentTarget);
     const assigneeId = f.get('assignee_id') ? Number(f.get('assignee_id')) : null;
@@ -825,6 +1001,7 @@ export default function App() {
         return;
       }
     }
+    sendChangeNotification(payload.title, `Detail tugas diperbarui (Status: ${statusMeta[payload.status]?.label || payload.status})`, assignedMember || selectedTask.assignee);
     setModal('');
     setSelectedTask(null);
   };
@@ -833,6 +1010,7 @@ export default function App() {
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
+    if (!requireLogin(null, 'membuat proyek baru')) return;
     const f = new FormData(e.currentTarget);
     const payload = {
       name: f.get('name'),
@@ -874,6 +1052,7 @@ export default function App() {
 
   const handleDeleteProject = async (pToDelete, e) => {
     e.stopPropagation();
+    if (!requireLogin(null, 'menghapus proyek')) return;
     if (projects.length <= 1) {
       notify('Minimal harus ada 1 proyek aktif');
       return;
@@ -910,6 +1089,7 @@ export default function App() {
 
   const handleAddMember = async (e) => {
     e.preventDefault();
+    if (!requireLogin(null, 'menambah anggota tim')) return;
     if (!currentProject) {
       notify('Pilih proyek terlebih dahulu');
       return;
@@ -917,7 +1097,7 @@ export default function App() {
     const f = new FormData(e.currentTarget);
     const name = f.get('name').trim();
     const role = f.get('role').trim() || 'Anggota Tim';
-    const email = f.get('email').trim() || '';
+    const email = f.get('email').trim() || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@kampus.ac.id`;
 
     const initials = name
       .split(' ')
@@ -937,12 +1117,14 @@ export default function App() {
         bg: selectedColor
       };
       setAllMembers([...allMembers, newMember]);
+      sendChangeNotification(currentProject.name, 'Undangan bergabung ke proyek tugas kelompok', newMember);
       notify(`Anggota "${name}" berhasil ditambahkan!`);
     } else {
       try {
         const r = await api.post(`/projects/${currentProject.id}/members`, payload);
         const newMember = { ...r.data, initial: initials, bg: selectedColor };
         setAllMembers([...allMembers, newMember]);
+        sendChangeNotification(currentProject.name, 'Undangan bergabung ke proyek tugas kelompok', newMember);
         notify(`Anggota "${name}" berhasil ditambahkan!`);
       } catch {
         notify('Gagal menambahkan anggota');
@@ -953,6 +1135,7 @@ export default function App() {
   };
 
   const handleDeleteMember = async (memberToDelete) => {
+    if (!requireLogin(null, 'menghapus anggota tim')) return;
     if (!confirm(`Hapus "${memberToDelete.name}" dari proyek ini?`)) return;
 
     if (demo) {
@@ -974,28 +1157,116 @@ export default function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    try {
-      const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
-      const payload = authMode === 'login'
-        ? { email: f.get('email'), password: f.get('password') }
-        : { name: f.get('name'), email: f.get('email'), password: f.get('password') };
+    const emailVal = (f.get('email') || '').toString().trim().toLowerCase();
+    const passVal = (f.get('password') || '').toString();
+    const nameVal = (f.get('name') || '').toString().trim();
 
-      const r = await api.post(endpoint, payload);
-      localStorage.setItem('tp_token', r.data.access_token);
-      localStorage.setItem('tp_user', JSON.stringify(r.data.user));
-      setToken(r.data.access_token);
-      setUser(r.data.user);
+    // 1. Admin shortcut check
+    if (authMode === 'login' && emailVal === 'admin@teamly.com' && passVal === 'admin123') {
+      try {
+        const r = await api.post('/auth/login', { email: emailVal, password: passVal });
+        localStorage.setItem('tp_token', r.data.access_token);
+        localStorage.setItem('tp_user', JSON.stringify(r.data.user));
+        setToken(r.data.access_token);
+        setUser(r.data.user);
+      } catch {
+        const adminUser = { id: 1, name: 'Admin Teamly', email: 'admin@teamly.com', role: 'admin' };
+        const adminToken = 'admin_token_' + Date.now();
+        localStorage.setItem('tp_token', adminToken);
+        localStorage.setItem('tp_user', JSON.stringify(adminUser));
+        setToken(adminToken);
+        setUser(adminUser);
+      }
       setDemo(false);
       setModal('');
-      notify('Berhasil masuk!');
-    } catch (err) {
-      notify(err.response?.data?.detail || 'Autentikasi gagal');
+      setAuthModalPrompt('');
+      notify('Selamat datang, Admin Teamly! 👑');
+      return;
+    }
+
+    try {
+      if (authMode === 'login') {
+        try {
+          const r = await api.post('/auth/login', { email: emailVal, password: passVal });
+          localStorage.setItem('tp_token', r.data.access_token);
+          localStorage.setItem('tp_user', JSON.stringify(r.data.user));
+          setToken(r.data.access_token);
+          setUser(r.data.user);
+          setDemo(false);
+          setModal('');
+          setAuthModalPrompt('');
+          notify('Berhasil masuk ke akun!');
+          return;
+        } catch (apiErr) {
+          const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
+          const matched = localUsers.find(u => u.email === emailVal && u.password === passVal);
+          if (matched) {
+            const localUser = { id: matched.id, name: matched.name, email: matched.email };
+            const localToken = 'local_token_' + matched.id;
+            localStorage.setItem('tp_token', localToken);
+            localStorage.setItem('tp_user', JSON.stringify(localUser));
+            setToken(localToken);
+            setUser(localUser);
+            setDemo(false);
+            setModal('');
+            setAuthModalPrompt('');
+            notify(`Selamat datang kembali, ${localUser.name}!`);
+            return;
+          }
+          notify(apiErr.response?.data?.detail || 'Email atau password salah');
+          return;
+        }
+      } else {
+        // Mode REGISTER
+        if (passVal.length < 8) {
+          notify('Kata sandi minimal 8 karakter');
+          return;
+        }
+        try {
+          const r = await api.post('/auth/register', { name: nameVal, email: emailVal, password: passVal });
+          localStorage.setItem('tp_token', r.data.access_token);
+          localStorage.setItem('tp_user', JSON.stringify(r.data.user));
+          setToken(r.data.access_token);
+          setUser(r.data.user);
+          setDemo(false);
+          setModal('');
+          setAuthModalPrompt('');
+          notify(`Akun berhasil dibuat! Selamat datang, ${r.data.user.name}`);
+          return;
+        } catch (apiErr) {
+          if (apiErr.response?.data?.detail) {
+            notify(apiErr.response.data.detail);
+            return;
+          }
+          const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
+          if (localUsers.some(u => u.email === emailVal)) {
+            notify('Email sudah terdaftar. Silakan masuk.');
+            return;
+          }
+          const newUser = { id: Date.now(), name: nameVal, email: emailVal };
+          localUsers.push({ ...newUser, password: passVal });
+          localStorage.setItem('tp_registered_users', JSON.stringify(localUsers));
+          const localToken = 'local_token_' + newUser.id;
+          localStorage.setItem('tp_token', localToken);
+          localStorage.setItem('tp_user', JSON.stringify(newUser));
+          setToken(localToken);
+          setUser(newUser);
+          setDemo(false);
+          setModal('');
+          setAuthModalPrompt('');
+          notify(`Akun berhasil dibuat! Selamat datang, ${newUser.name}`);
+          return;
+        }
+      }
+    } catch {
+      notify('Gagal memproses akun. Silakan coba lagi.');
     }
   };
 
   // ================= AI CHAT =================
 
   const sendAiChat = async (promptText) => {
+    if (!requireLogin(null, 'mengirim pesan ke asisten AI')) return;
     const q = (promptText || chatInput).trim();
     if (!q) return;
 
@@ -1040,15 +1311,6 @@ export default function App() {
     return (
       <WelcomeScreen
         onOpenWorkspace={() => setCurrentView('workspace')}
-        onStartSurvey={() => {
-          setActiveTab('generator');
-          setSurveyStep(1);
-          setCurrentView('workspace');
-        }}
-        onOpenAuth={(m) => {
-          setAuthInitialMode(m || 'login');
-          setCurrentView('auth');
-        }}
       />
     );
   }
@@ -1057,18 +1319,20 @@ export default function App() {
     return (
       <AuthPage
         initialMode={authInitialMode}
+        customPrompt={authModalPrompt}
         onSuccess={(newUser, newToken) => {
           setUser(newUser);
           setToken(newToken);
           setDemo(false);
+          setAuthModalPrompt('');
           setCurrentView('workspace');
           notify('Berhasil masuk ke akun!');
         }}
-        onGoToLanding={() => setCurrentView('welcome')}
+        onGoToLanding={() => setCurrentView('workspace')}
         onEnterDemo={() => {
           setDemo(true);
           setCurrentView('workspace');
-          notify('Masuk sebagai Tamu (Mode Demo)');
+          notify('Masuk sebagai Guest');
         }}
       />
     );
@@ -1157,7 +1421,7 @@ export default function App() {
                   }}
                 >
                   <Plus size={14} />
-                  <span>+ Buat Proyek Manual</span>
+                  <span>Buat Proyek Manual</span>
                 </button>
               </div>
             </div>
@@ -1208,38 +1472,29 @@ export default function App() {
             <Sparkles size={18} />
             <span>AI Pembimbing</span>
           </button>
-
-          <button
-            className="nav-btn nav-welcome-btn"
-            onClick={() => setCurrentView('welcome')}
-            title="Kembali ke Halaman Awal"
-          >
-            <Rocket size={18} />
-            <span>Halaman Awal</span>
-          </button>
         </nav>
 
         {/* Sidebar Footer with Profile */}
         <div className="teamly-sidebar-footer">
           <div className="profile-pill">
             <div className="profile-avatar">
-              {(user?.name || 'Mahasiswa').slice(0, 1).toUpperCase()}
+              {isGuest ? 'G' : (user?.name || 'A').slice(0, 1).toUpperCase()}
             </div>
             <div className="profile-text">
-              <span className="profile-name">{user?.name || (demo ? 'Mode Mahasiswa' : 'Pengguna')}</span>
-              <span className="profile-sub">{demo ? 'Data tersimpan lokal' : user?.email}</span>
+              <span className="profile-name">{isGuest ? 'Guest' : (user?.name || 'Admin Teamly')}</span>
+              <span className="profile-sub">{isGuest ? 'Mode Lihat Saja' : (user?.email || 'admin@teamly.com')}</span>
             </div>
-            {!demo ? (
-              <button className="profile-logout-btn" onClick={logout} title="Keluar">
-                <LogOut size={15} />
-              </button>
-            ) : (
+            {isGuest ? (
               <button
                 className="profile-login-btn"
                 onClick={() => { setAuthInitialMode('login'); setCurrentView('auth'); }}
                 title="Masuk ke Akun"
               >
                 Masuk
+              </button>
+            ) : (
+              <button className="profile-logout-btn" onClick={logout} title="Keluar">
+                <LogOut size={15} />
               </button>
             )}
           </div>
@@ -1265,31 +1520,157 @@ export default function App() {
           </div>
 
           <div className="topbar-right">
-            <div className="search-bar-wrap">
+            {/* Live Interactive Search Bar with Instant Result Dropdown */}
+            <div className="search-bar-wrap" style={{ position: 'relative' }}>
               <Search size={15} className="search-icon" />
               <input
                 type="text"
                 className="search-input"
                 placeholder="Cari tugas di proyek ini..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => setShowSearchDropdown(true)}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchDropdown(true);
+                }}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="btn-clear-search"
+                  onClick={() => { setSearchQuery(''); setShowSearchDropdown(false); }}
+                  title="Hapus pencarian"
+                >
+                  <X size={13} />
+                </button>
+              )}
+
+              {/* Instant Search Results Dropdown */}
+              {showSearchDropdown && searchQuery.trim().length > 0 && (
+                <div className="search-results-dropdown">
+                  <div className="search-dropdown-header">
+                    <span>Hasil Pencarian Tugas</span>
+                    <span className="results-count-badge">{searchMatches.length}</span>
+                  </div>
+                  <div className="search-dropdown-list">
+                    {searchMatches.length === 0 ? (
+                      <div className="search-empty-state">
+                        Tidak ada tugas yang cocok dengan "{searchQuery}"
+                      </div>
+                    ) : (
+                      searchMatches.map(t => (
+                        <div
+                          key={t.id}
+                          className="search-result-item"
+                          onClick={() => {
+                            setSelectedTask(t);
+                            setModal('edit_task');
+                            setShowSearchDropdown(false);
+                            setSearchQuery('');
+                          }}
+                        >
+                          <div className="result-item-main">
+                            <span className="result-item-title">{t.title}</span>
+                            <div className="result-item-tags">
+                              <span className={`result-status-badge ${t.status}`}>
+                                {statusMeta[t.status]?.label || t.status}
+                              </span>
+                              {t.category && <span className="result-cat-tag">{t.category}</span>}
+                              {t.assignee && (
+                                <span className="result-assignee-tag">👤 {t.assignee}</span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="result-action-hint">Buka &rarr;</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <button className="topbar-bell-btn" title="Notifikasi aktivitas">
-              <Bell size={17} />
-              <span className="bell-dot" />
-            </button>
+            {/* Notification Bell with Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                className="topbar-bell-btn"
+                onClick={() => setShowNotifications(!showNotifications)}
+                title="Notifikasi aktivitas"
+              >
+                <Bell size={17} />
+                {notifications.some(n => n.unread) && <span className="bell-dot" />}
+              </button>
 
-            <div
-              className="user-top-avatar"
-              onClick={() => { if (demo) { setAuthInitialMode('login'); setCurrentView('auth'); } }}
-              title={demo ? 'Klik untuk masuk / daftar' : user?.name}
-            >
-              {(user?.name || 'M').slice(0, 1).toUpperCase()}
+              {showNotifications && (
+                <div className="notification-panel-dropdown">
+                  <div className="notif-dropdown-header">
+                    <div className="notif-header-title">Notifikasi Aktivitas</div>
+                    <button className="notif-mark-read-btn" onClick={markAllNotificationsRead}>
+                      Tandai Dibaca
+                    </button>
+                  </div>
+                  <div className="notif-list-body">
+                    {notifications.length === 0 ? (
+                      <div className="notif-empty-box">Belum ada notifikasi aktivitas</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className={`notif-card-item ${n.unread ? 'unread' : ''}`}>
+                          <div className="notif-item-top">
+                            <span className="notif-item-title">{n.title}</span>
+                            <span className="notif-item-time">{n.time}</span>
+                          </div>
+                          <p className="notif-item-desc">{n.action}</p>
+                          {n.taskTitle && (
+                            <div className="notif-task-badge">
+                              📌 {n.taskTitle}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="notif-dropdown-footer">
+                    Aktivitas dan pembaruan tugas tim tersinkronisasi otomatis.
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* User Avatar or Guest Login Button */}
+            {isGuest ? (
+              <button
+                className="btn-topbar-login"
+                onClick={() => { setAuthInitialMode('login'); setCurrentView('auth'); }}
+              >
+                Masuk
+              </button>
+            ) : (
+              <div
+                className="user-top-avatar"
+                onClick={() => { setAuthInitialMode('login'); setCurrentView('auth'); }}
+                title={user?.name || 'Pengguna'}
+              >
+                {(user?.name || 'M').slice(0, 1).toUpperCase()}
+              </div>
+            )}
           </div>
         </header>
+
+        {/* Guest Mode Banner Notice */}
+        {isGuest && (
+          <div className="guest-compact-notice">
+            <div className="guest-notice-left">
+              <span className="guest-notice-pill">Guest</span>
+              <span className="guest-notice-text">Mode lihat saja. Masuk untuk menambah & mengedit tugas.</span>
+            </div>
+            <button
+              className="btn-guest-action"
+              onClick={() => { setAuthInitialMode('login'); setCurrentView('auth'); }}
+            >
+              Masuk
+            </button>
+          </div>
+        )}
 
         {/* ================= TAB 0: DASHBOARD ================= */}
         {activeTab === 'dashboard' && (
@@ -1304,13 +1685,19 @@ export default function App() {
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn-add-project" onClick={() => setModal('project')}>
+                <button
+                  className="btn-add-project"
+                  onClick={() => requireLogin(() => setModal('project'), 'menambah proyek baru')}
+                >
                   <Plus size={15} />
-                  <span>+ Tambah Proyek</span>
+                  <span>Tambah Proyek</span>
                 </button>
-                <button className="btn-add-task" onClick={() => setModal('task')}>
+                <button
+                  className="btn-add-task"
+                  onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
+                >
                   <Plus size={15} />
-                  <span>+ Tambah Tugas</span>
+                  <span>Tambah Tugas</span>
                 </button>
               </div>
             </div>
@@ -1451,14 +1838,6 @@ export default function App() {
                       <Clock size={16} color="#10b981" />
                       <h3 className="panel-title">Jadwal & Timeline Hari Ini</h3>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button className="btn-ghost-sm" onClick={() => setModal('task')}>
-                        <Plus size={13} /> Tambah
-                      </button>
-                      <button className="btn-icon-dots" title="Pilihan timeline">
-                        <MoreHorizontal size={15} color="#94a3b8" />
-                      </button>
-                    </div>
                   </div>
 
                   {/* Horizontal Time Axis */}
@@ -1495,7 +1874,7 @@ export default function App() {
                   {/* Habo-style Floating Add Button */}
                   <button
                     className="timeline-fab-btn"
-                    onClick={() => setModal('task')}
+                    onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
                     title="Tambah aktivitas / tugas"
                   >
                     <Plus size={18} />
@@ -1867,7 +2246,10 @@ export default function App() {
                   </button>
                 </div>
 
-                <button className="btn-add-task" onClick={() => setModal('task')}>
+                <button
+                  className="btn-add-task"
+                  onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
+                >
                   <Plus size={14} /> Tambah Tugas
                 </button>
               </div>
@@ -1888,7 +2270,7 @@ export default function App() {
                         </div>
                         <button
                           className="column-quick-add-btn"
-                          onClick={() => { setSelectedTask({ status: statusKey }); setModal('task'); }}
+                          onClick={() => requireLogin(() => { setSelectedTask({ status: statusKey }); setModal('task'); }, 'menambah tugas baru')}
                           title={`Tambah tugas ke ${statusMeta[statusKey].label}`}
                         >
                           <Plus size={14} />
@@ -2081,7 +2463,10 @@ export default function App() {
                   Atur peran dan pembagian beban tugas kuliah secara adil.
                 </p>
               </div>
-              <button className="btn-add-task" onClick={() => setModal('member')}>
+              <button
+                className="btn-add-task"
+                onClick={() => requireLogin(() => setModal('member'), 'menambah anggota kelompok')}
+              >
                 <UserPlus size={14} /> Tambah Teman Kelompok
               </button>
             </div>
@@ -2554,10 +2939,15 @@ export default function App() {
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">{authMode === 'login' ? 'Masuk ke Teamly' : 'Daftar Akun Teamly'}</h3>
-              <button className="modal-close-btn" onClick={() => setModal('')}>
+              <button className="modal-close-btn" onClick={() => { setModal(''); setAuthModalPrompt(''); }}>
                 <X size={18} />
               </button>
             </div>
+            {authModalPrompt && (
+              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', marginBottom: '14px', lineHeight: '1.4' }}>
+                🔒 {authModalPrompt}
+              </div>
+            )}
             <form onSubmit={handleAuth}>
               {authMode === 'register' && (
                 <div className="form-group">
