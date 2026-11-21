@@ -18,7 +18,7 @@ async def ask_ai(prompt: str) -> str:
     return fallback(prompt)
 
 def fallback(prompt: str) -> str:
-    return ('Analisis awal TeamPilot AI untuk Proyek Tugas Kuliah:\n\n' +
+    return ('Analisis awal TeamPilot AI untuk Project Tugas Kuliah:\n\n' +
       '1. Prioritaskan tugas berprioritas tinggi yang memiliki tenggat waktu terdekat.\n' +
       '2. Bagi beban kerja secara merata antar anggota kelompok berdasarkan keahlian masing-masing.\n' +
       '3. Buat wireframe atau skema database terlebih dahulu sebelum memulai coding.\n' +
@@ -47,7 +47,7 @@ async def generate_project_idea(
             from langchain_core.messages import HumanMessage, SystemMessage
             model = ChatGoogleGenerativeAI(model=os.getenv('GEMINI_MODEL', 'gemini-2.0-flash'), google_api_key=key, temperature=0.5)
             prompt = (
-                f"Kamu adalah dosen pembimbing senior dan arsitek software untuk proyek tugas kuliah mahasiswa.\n"
+                f"Kamu adalah dosen pembimbing senior dan arsitek software untuk project tugas kuliah mahasiswa.\n"
                 f"Mahasiswa bingung ingin membuat apa, dan telah mengisi survei preferensi berikut:\n"
                 f"- Bidang Minat: {domain}\n"
                 f"- Mata Kuliah / Topik: {course_topic}\n"
@@ -55,12 +55,12 @@ async def generate_project_idea(
                 f"- Platform Pilihan: {target_platform}\n"
                 f"- Tingkat Kesulitan: {difficulty}\n"
                 f"{f'- Catatan Khusus: {problem}' if problem else ''}\n\n"
-                f"Buatkan TEPAT 3 PILIHAN ide proyek kuliah yang siap dieksekusi mahasiswa dalam format JSON VALID murni:\n"
+                f"Buatkan TEPAT 3 PILIHAN ide project kuliah yang siap dieksekusi mahasiswa dalam format JSON VALID murni:\n"
                 f"{{\n"
                 f'  "ideas": [\n'
                 f'    {{\n'
                 f'      "id": "idea-1",\n'
-                f'      "name": "Nama Proyek Menarik",\n'
+                f'      "name": "Nama Project Menarik",\n'
                 f'      "tagline": "Satu kalimat singkat pemikat",\n'
                 f'      "description": "Deskripsi solusi jelas 1-2 kalimat",\n'
                 f'      "category": "{domain}",\n'
@@ -134,7 +134,7 @@ def fallback_survey_ideas(domain: str, course_topic: str, member_count: int, tar
                 'role': role_list[0] if len(role_list) <= 2 else role_list[min(2, len(role_list)-1)]
             },
             {
-                'title': 'Pengujian Sistem & Penyusunan Laporan Proyek',
+                'title': 'Pengujian Sistem & Penyusunan Laporan Project',
                 'description': 'Uji seluruh fitur bebas bug dan siapkan dokumen laporan tugas kuliah.',
                 'priority': 'medium',
                 'estimated_hours': 6,

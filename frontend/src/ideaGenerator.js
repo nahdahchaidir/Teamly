@@ -73,7 +73,7 @@ export function localGenerateSurveyIdeas(domain, courseTopic, memberCount, platf
       role: roles[roles.length > 2 ? 0 : 0]
     },
     {
-      title: 'Pengujian Sistem & Penyusunan Laporan Proyek',
+      title: 'Pengujian Sistem & Penyusunan Laporan Project',
       description: 'Uji fungsionalitas bebas error dan siapkan dokumen bab laporan tugas kuliah.',
       priority: 'medium',
       estimated_hours: 6,

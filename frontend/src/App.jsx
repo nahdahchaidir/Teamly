@@ -65,27 +65,132 @@ const defaultDemoProjects = [
 ];
 
 const defaultDemoMembers = [
-  // Proyek 1 Members
+  // Project 1 Members
   { id: 1, project_id: 1, name: 'Nadia Putri', role: 'UI/UX Designer & Dokumen', email: 'nadia@kampus.ac.id', initial: 'NP', bg: '#6366f1' },
   { id: 2, project_id: 1, name: 'Rizky Pratama', role: 'Backend & Database Engineer', email: 'rizky@kampus.ac.id', initial: 'RP', bg: '#059669' },
   { id: 3, project_id: 1, name: 'Fajar Ramadhan', role: 'Frontend Developer', email: 'fajar@kampus.ac.id', initial: 'FR', bg: '#d97706' },
 
-  // Proyek 2 Members
+  // Project 2 Members
   { id: 4, project_id: 2, name: 'Budi Santoso', role: 'Fullstack Developer', email: 'budi@kampus.ac.id', initial: 'BS', bg: '#8b5cf6' },
   { id: 5, project_id: 2, name: 'Siti Rahma', role: 'UI/UX & Tester', email: 'siti@kampus.ac.id', initial: 'SR', bg: '#ec4899' }
 ];
 
 const defaultDemoTasks = [
-  // Proyek 1 Tasks
-  { id: 't1', project_id: 1, title: 'Rancang wireframe katalog kantin & nomor antrean', description: 'Wireframe responsif untuk katalog kantin dan nomor antrean.', status: 'done', priority: 'medium', assignee: 'Nadia Putri', assignee_id: 1, deadline: '2026-11-18', estimated_hours: 5, category: 'UI/UX', time_slot: '08.30' },
-  { id: 't2', project_id: 1, title: 'Implementasi API katalog menu & autentikasi JWT', description: 'Endpoint menu, stok real-time, dan akun pengguna.', status: 'doing', priority: 'high', assignee: 'Rizky Pratama', assignee_id: 2, deadline: '2026-11-20', estimated_hours: 8, category: 'Backend', time_slot: '10.30' },
-  { id: 't3', project_id: 1, title: 'Desain skema basis data pesanan & transaksi', description: 'Relasi tabel mahasiswa, pesanan, menu, dan detail transaksi.', status: 'done', priority: 'high', assignee: 'Rizky Pratama', assignee_id: 2, deadline: '2026-11-21', estimated_hours: 6, category: 'Database', time_slot: '13.00' },
-  { id: 't4', project_id: 1, title: 'Integrasi frontend pemesanan dengan REST API', description: 'Tampilan keranjang, checkout pesanan, dan nomor antrean.', status: 'doing', priority: 'high', assignee: 'Fajar Ramadhan', assignee_id: 3, deadline: '2026-11-25', estimated_hours: 8, category: 'Frontend', time_slot: '15.30' },
-  { id: 't5', project_id: 1, title: 'Pengujian fungsionalitas & bab laporan tugas', description: 'Uji alur checkout dan tulis bab pengujian untuk laporan tugas.', status: 'todo', priority: 'medium', assignee: 'Nadia Putri', assignee_id: 1, deadline: '2026-11-28', estimated_hours: 6, category: 'Laporan', time_slot: '17.00' },
+  // Project 1 Tasks
+  {
+    id: 't1',
+    project_id: 1,
+    title: 'Rancang wireframe katalog kantin & nomor antrean',
+    description: 'Wireframe responsif untuk katalog kantin dan nomor antrean.',
+    status: 'done',
+    priority: 'medium',
+    assignee: 'Nadia Putri',
+    assignee_id: 1,
+    deadline: '2026-11-18',
+    estimated_hours: 5,
+    category: 'UI/UX',
+    time_slot: '08.30',
+    comments: [
+      { id: 'c1', author: 'Nadia Putri', role: 'UI/UX', text: 'Wireframe v1 sudah selesai dan diunggah ke link Figma kelompok.', time: '2 hari lalu' },
+      { id: 'c2', author: 'Rizky Pratama', role: 'Backend', text: 'Desainnya sudah pas! Format respon JSON akan saya sesuaikan.', time: '1 hari lalu' }
+    ]
+  },
+  {
+    id: 't2',
+    project_id: 1,
+    title: 'Implementasi API katalog menu & autentikasi JWT',
+    description: 'Endpoint menu, stok real-time, dan akun pengguna.',
+    status: 'doing',
+    priority: 'high',
+    assignee: 'Rizky Pratama',
+    assignee_id: 2,
+    deadline: '2026-11-20',
+    estimated_hours: 8,
+    category: 'Backend',
+    time_slot: '10.30',
+    comments: [
+      { id: 'c3', author: 'Rizky Pratama', role: 'Backend', text: 'Autentikasi JWT sudah selesai, sedang melengkapi endpoint filter menu.', time: '3 jam lalu' }
+    ]
+  },
+  {
+    id: 't3',
+    project_id: 1,
+    title: 'Desain skema basis data pesanan & transaksi',
+    description: 'Relasi tabel mahasiswa, pesanan, menu, dan detail transaksi.',
+    status: 'done',
+    priority: 'high',
+    assignee: 'Rizky Pratama',
+    assignee_id: 2,
+    deadline: '2026-11-21',
+    estimated_hours: 6,
+    category: 'Database',
+    time_slot: '13.00',
+    comments: []
+  },
+  {
+    id: 't4',
+    project_id: 1,
+    title: 'Integrasi frontend pemesanan dengan REST API',
+    description: 'Tampilan keranjang, checkout pesanan, dan nomor antrean.',
+    status: 'doing',
+    priority: 'high',
+    assignee: 'Fajar Ramadhan',
+    assignee_id: 3,
+    deadline: '2026-11-25',
+    estimated_hours: 8,
+    category: 'Frontend',
+    time_slot: '15.30',
+    comments: [
+      { id: 'c4', author: 'Fajar Ramadhan', role: 'Frontend', text: 'Halaman checkout sudah terhubung ke API pesanan.', time: 'Baru saja' }
+    ]
+  },
+  {
+    id: 't5',
+    project_id: 1,
+    title: 'Pengujian fungsionalitas & bab laporan tugas',
+    description: 'Uji alur checkout dan tulis bab pengujian untuk laporan tugas.',
+    status: 'todo',
+    priority: 'medium',
+    assignee: 'Nadia Putri',
+    assignee_id: 1,
+    deadline: '2026-11-28',
+    estimated_hours: 6,
+    category: 'Laporan',
+    time_slot: '17.00',
+    comments: []
+  },
 
-  // Proyek 2 Tasks
-  { id: 't6', project_id: 2, title: 'Setup arsitektur proyek & skema kas iuran', description: 'Struktur tabel kas, pencatatan transaksi masuk dan keluar.', status: 'done', priority: 'high', assignee: 'Budi Santoso', assignee_id: 4, deadline: '2026-11-15', estimated_hours: 8, category: 'Backend', time_slot: '09.00' },
-  { id: 't7', project_id: 2, title: 'Desain UI form upload bukti transfer kas', description: 'Form upload bukti transfer dengan preview gambar.', status: 'doing', priority: 'medium', assignee: 'Siti Rahma', assignee_id: 5, deadline: '2026-11-28', estimated_hours: 5, category: 'Frontend', time_slot: '14.00' }
+  // Project 2 Tasks
+  {
+    id: 't6',
+    project_id: 2,
+    title: 'Setup arsitektur project & skema kas iuran',
+    description: 'Struktur tabel kas, pencatatan transaksi masuk dan keluar.',
+    status: 'done',
+    priority: 'high',
+    assignee: 'Budi Santoso',
+    assignee_id: 4,
+    deadline: '2026-11-15',
+    estimated_hours: 8,
+    category: 'Backend',
+    time_slot: '09.00',
+    comments: []
+  },
+  {
+    id: 't7',
+    project_id: 2,
+    title: 'Desain UI form upload bukti transfer kas',
+    description: 'Form upload bukti transfer dengan preview gambar.',
+    status: 'doing',
+    priority: 'medium',
+    assignee: 'Siti Rahma',
+    assignee_id: 5,
+    deadline: '2026-11-28',
+    estimated_hours: 5,
+    category: 'Frontend',
+    time_slot: '14.00',
+    comments: []
+  }
 ];
 
 const statusMeta = {
@@ -505,6 +610,7 @@ export default function App() {
   // Modals & Popovers
   const [modal, setModal] = useState(''); // 'task' | 'edit_task' | 'project' | 'member' | 'auth'
   const [selectedTask, setSelectedTask] = useState(null);
+  const [newCommentText, setNewCommentText] = useState('');
   const [selectedColor, setSelectedColor] = useState(colorOptions[0].hex);
   const [authMode, setAuthMode] = useState('login');
   const [projectDropdown, setProjectDropdown] = useState(false);
@@ -525,65 +631,12 @@ export default function App() {
   const requireLogin = (actionCallback, actionName = 'memakai aplikasi') => {
     if (isGuest) {
       setAuthModalPrompt(`Perlu login terlebih dahulu untuk ${actionName}. Silakan masuk atau buat akun baru.`);
-      setAuthInitialMode('login');
-      setCurrentView('auth');
+      setAuthMode('login');
+      setModal('auth');
       return false;
     }
     if (actionCallback) actionCallback();
     return true;
-  };
-
-  // Task Comments & Feedback State
-  const [taskComments, setTaskComments] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tp_task_comments');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-  const [commentInput, setCommentInput] = useState('');
-
-  const handleAddComment = (taskId) => {
-    if (!requireLogin(null, 'memberikan feedback tugas')) return;
-    const cleanText = commentInput.trim();
-    if (!cleanText) return;
-
-    const authorName = user?.name || (isGuest ? 'Guest' : 'Anggota Tim');
-    const authorInitial = authorName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
-
-    const newComment = {
-      id: 'cmt_' + Date.now(),
-      author: authorName,
-      initial: authorInitial,
-      text: cleanText,
-      timestamp: `Hari ini, ${timeStr}`
-    };
-
-    const updated = {
-      ...taskComments,
-      [taskId]: [...(taskComments[taskId] || []), newComment]
-    };
-
-    setTaskComments(updated);
-    try {
-      localStorage.setItem('tp_task_comments', JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
-    setCommentInput('');
-    notify('Feedback berhasil dikirim!');
-
-    const targetTask = allTasks.find(t => t.id === taskId) || selectedTask;
-    if (targetTask) {
-      sendChangeNotification(
-        targetTask,
-        `${authorName} memberikan feedback: "${cleanText.length > 40 ? cleanText.slice(0, 40) + '...' : cleanText}"`,
-        targetTask.assignee
-      );
-    }
   };
 
   // Kirim notifikasi aktivitas tim
@@ -664,7 +717,7 @@ export default function App() {
         return [...other, ...mRes.data];
       });
     } catch {
-      notify('Gagal memuat data proyek');
+      notify('Gagal memuat data project');
     }
   }
 
@@ -764,21 +817,21 @@ export default function App() {
       if (result && result.ideas) {
         setGeneratedIdeas(result.ideas);
         setSurveyStep(5); // Jump to results step
-        notify('🎯 AI berhasil merumuskan 3 rekomendasi proyek!');
+        notify('🎯 AI berhasil merumuskan 3 rekomendasi project!');
       }
     } catch {
-      notify('Gagal menganalisis ide proyek');
+      notify('Gagal menganalisis ide project');
     } finally {
       setIsAnalyzingIdeas(false);
     }
   };
 
   const handleSelectIdea = async (idea) => {
-    if (!requireLogin(null, 'menerapkan ide proyek AI')) return;
+    if (!requireLogin(null, 'menerapkan ide project AI')) return;
     const newProjectPayload = {
       name: idea.name,
       description: idea.description,
-      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      deadline: '',
       theme: idea.banner_theme || 'blue_campus'
     };
 
@@ -788,38 +841,27 @@ export default function App() {
       newProjectId = Date.now();
       const newProj = { id: newProjectId, ...newProjectPayload };
 
-      const generatedMembers = (idea.roles || []).map((roleName, idx) => ({
-        id: Date.now() + 10 + idx,
-        project_id: newProjectId,
-        name: idx === 0 ? (user?.name || 'Mahasiswa (Lead)') : `Teman Kelompok ${idx + 1}`,
-        role: roleName,
-        email: `anggota${idx + 1}@kampus.ac.id`,
-        initial: idx === 0 ? 'KT' : `T${idx + 1}`,
-        bg: colorOptions[idx % colorOptions.length].hex
-      }));
-
       const slots = ['08.30', '10.30', '13.00', '15.30', '17.00'];
 
-      const generatedTasks = (idea.tasks || []).map((t, idx) => {
-        const assignedMem = generatedMembers[idx % generatedMembers.length];
-        return {
-          id: 'gt_' + Date.now() + '_' + idx,
-          project_id: newProjectId,
-          title: t.title,
-          description: t.description || '',
-          status: 'todo',
-          priority: t.priority || 'medium',
-          deadline: newProjectPayload.deadline,
-          estimated_hours: Number(t.estimated_hours || 6),
-          assignee_id: assignedMem.id,
-          assignee: assignedMem.name,
-          category: idx === 0 ? 'UI/UX' : idx === 1 ? 'Database' : idx === 2 ? 'Backend' : idx === 3 ? 'Frontend' : 'Testing',
-          time_slot: slots[idx % slots.length]
-        };
-      });
+      // Anggota dan deadline tugas dikosongkan sesuai permintaan pengguna
+      const generatedTasks = (idea.tasks || []).map((t, idx) => ({
+        id: 'gt_' + Date.now() + '_' + idx,
+        project_id: newProjectId,
+        title: t.title,
+        description: t.description || '',
+        status: 'todo',
+        priority: t.priority || 'medium',
+        deadline: '', // dikosongkan
+        estimated_hours: Number(t.estimated_hours || 6),
+        assignee_id: null, // dikosongkan
+        assignee: '', // dikosongkan
+        category: t.category || (idx === 0 ? 'UI/UX' : idx === 1 ? 'Database' : idx === 2 ? 'Backend' : idx === 3 ? 'Frontend' : 'Testing'),
+        time_slot: slots[idx % slots.length],
+        comments: []
+      }));
 
       setProjects([newProj, ...projects]);
-      setAllMembers([...generatedMembers, ...allMembers]);
+      // Tidak menambahkan dummy anggota
       setAllTasks([...generatedTasks, ...allTasks]);
       setActiveProjectId(newProjectId);
     } else {
@@ -829,39 +871,29 @@ export default function App() {
         setProjects([rProj.data, ...projects]);
         setActiveProjectId(newProjectId);
 
-        const createdMembers = [];
-        for (const roleName of (idea.roles || [])) {
-          const mRes = await api.post(`/projects/${newProjectId}/members`, {
-            name: createdMembers.length === 0 ? (user?.name || 'Mahasiswa') : `Teman Kelompok ${createdMembers.length + 1}`,
-            role: roleName,
-            email: ''
-          });
-          createdMembers.push(mRes.data);
-        }
-
+        // Tidak menambahkan dummy anggota, buat tugas tanpa penanggung jawab & tanpa deadline
         for (let i = 0; i < (idea.tasks || []).length; i++) {
           const t = idea.tasks[i];
-          const assignedMem = createdMembers[i % createdMembers.length];
           await api.post(`/projects/${newProjectId}/tasks`, {
             title: t.title,
             description: t.description || '',
             status: 'todo',
             priority: t.priority || 'medium',
-            deadline: newProjectPayload.deadline,
+            deadline: null, // dikosongkan
             estimated_hours: Number(t.estimated_hours || 6),
-            assignee_id: assignedMem?.id || null
+            assignee_id: null // dikosongkan
           });
         }
         await loadBackendProjectData(newProjectId);
       } catch {
-        notify('Gagal membuat proyek di backend');
+        notify('Gagal membuat project di backend');
         return;
       }
     }
 
     setSurveyStep(1);
     setActiveTab('dashboard');
-    notify(`🎉 Proyek "${idea.name}" aktif dengan ${idea.tasks.length} tugas siap dikerjakan!`);
+    notify(`🎉 Project "${idea.name}" dibuat! Pembagian tugas & deskripsi siap dikelola.`);
   };
 
   // ================= TASK ACTIONS =================
@@ -918,14 +950,14 @@ export default function App() {
         return;
       }
     }
-    sendChangeNotification(task, 'Tugas dihapus dari sprint proyek', task.assignee);
+    sendChangeNotification(task, 'Tugas dihapus dari sprint project', task.assignee);
   };
 
   const handleAddTask = async (e) => {
     e.preventDefault();
     if (!requireLogin(null, 'menambah tugas baru')) return;
     if (!currentProject) {
-      notify('Pilih proyek terlebih dahulu');
+      notify('Pilih project terlebih dahulu');
       return;
     }
     const f = new FormData(e.currentTarget);
@@ -989,12 +1021,12 @@ export default function App() {
     };
 
     if (demo) {
-      setAllTasks(allTasks.map(t => (t.id === selectedTask.id ? { ...t, ...payload } : t)));
+      setAllTasks(allTasks.map(t => (t.id === selectedTask.id ? { ...t, ...payload, comments: selectedTask.comments || t.comments || [] } : t)));
       notify('Tugas berhasil diperbarui');
     } else {
       try {
         const r = await api.patch(`/tasks/${selectedTask.id}`, payload);
-        setAllTasks(allTasks.map(t => (t.id === selectedTask.id ? { ...r.data, assignee: payload.assignee } : t)));
+        setAllTasks(allTasks.map(t => (t.id === selectedTask.id ? { ...r.data, assignee: payload.assignee, comments: selectedTask.comments || t.comments || [] } : t)));
         notify('Tugas berhasil diperbarui');
       } catch {
         notify('Gagal memperbarui tugas');
@@ -1006,11 +1038,43 @@ export default function App() {
     setSelectedTask(null);
   };
 
+  const handleAddComment = (e) => {
+    e.preventDefault();
+    if (!requireLogin(null, 'memberikan feedback atau komentar tugas')) return;
+    if (!newCommentText.trim() || !selectedTask) return;
+
+    const commenterName = user?.name || (selectedTask.assignee && selectedTask.assignee !== 'Unassigned' ? selectedTask.assignee : 'Anggota Tim');
+    const memberObj = currentProjectMembers.find(m => m.name === commenterName);
+    const commenterRole = memberObj?.role || (selectedTask.assignee ? 'Penanggung Jawab' : 'Anggota');
+
+    const newComment = {
+      id: 'cmt_' + Date.now(),
+      author: commenterName,
+      role: commenterRole,
+      text: newCommentText.trim(),
+      time: 'Baru saja'
+    };
+
+    const updatedComments = [...(selectedTask.comments || []), newComment];
+    const updatedTask = { ...selectedTask, comments: updatedComments };
+
+    setSelectedTask(updatedTask);
+    setAllTasks(prev => prev.map(t => (t.id === selectedTask.id ? updatedTask : t)));
+    setNewCommentText('');
+
+    sendChangeNotification(
+      selectedTask,
+      `Feedback baru dari ${commenterName}: "${newComment.text.slice(0, 35)}..."`,
+      selectedTask.assignee || commenterName
+    );
+    notify('Feedback tugas berhasil dikirim! 💬');
+  };
+
   // ================= PROJECT ACTIONS =================
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
-    if (!requireLogin(null, 'membuat proyek baru')) return;
+    if (!requireLogin(null, 'membuat project baru')) return;
     const f = new FormData(e.currentTarget);
     const payload = {
       name: f.get('name'),
@@ -1034,16 +1098,16 @@ export default function App() {
       setAllMembers([firstMember, ...allMembers]);
       setActiveProjectId(newP.id);
       setActiveTab('dashboard');
-      notify('Proyek baru dibuat');
+      notify('Project baru dibuat');
     } else {
       try {
         const r = await api.post('/projects', payload);
         setProjects([r.data, ...projects]);
         setActiveProjectId(r.data.id);
         setActiveTab('dashboard');
-        notify('Proyek baru berhasil dibuat');
+        notify('Project baru berhasil dibuat');
       } catch {
-        notify('Gagal membuat proyek');
+        notify('Gagal membuat project');
       }
     }
     setModal('');
@@ -1052,12 +1116,12 @@ export default function App() {
 
   const handleDeleteProject = async (pToDelete, e) => {
     e.stopPropagation();
-    if (!requireLogin(null, 'menghapus proyek')) return;
+    if (!requireLogin(null, 'menghapus project')) return;
     if (projects.length <= 1) {
-      notify('Minimal harus ada 1 proyek aktif');
+      notify('Minimal harus ada 1 project aktif');
       return;
     }
-    if (!confirm(`Hapus proyek "${pToDelete.name}" beserta seluruh tugasnya?`)) return;
+    if (!confirm(`Hapus project "${pToDelete.name}" beserta seluruh tugasnya?`)) return;
 
     if (demo) {
       const nextProjects = projects.filter(p => p.id !== pToDelete.id);
@@ -1067,7 +1131,7 @@ export default function App() {
       if (activeProjectId === pToDelete.id) {
         setActiveProjectId(nextProjects[0]?.id || null);
       }
-      notify('Proyek dihapus');
+      notify('Project dihapus');
     } else {
       try {
         await api.delete(`/projects/${pToDelete.id}`);
@@ -1078,9 +1142,9 @@ export default function App() {
         if (activeProjectId === pToDelete.id) {
           setActiveProjectId(nextProjects[0]?.id || null);
         }
-        notify('Proyek berhasil dihapus');
+        notify('Project berhasil dihapus');
       } catch {
-        notify('Gagal menghapus proyek');
+        notify('Gagal menghapus project');
       }
     }
   };
@@ -1091,7 +1155,7 @@ export default function App() {
     e.preventDefault();
     if (!requireLogin(null, 'menambah anggota tim')) return;
     if (!currentProject) {
-      notify('Pilih proyek terlebih dahulu');
+      notify('Pilih project terlebih dahulu');
       return;
     }
     const f = new FormData(e.currentTarget);
@@ -1117,14 +1181,14 @@ export default function App() {
         bg: selectedColor
       };
       setAllMembers([...allMembers, newMember]);
-      sendChangeNotification(currentProject.name, 'Undangan bergabung ke proyek tugas kelompok', newMember);
+      sendChangeNotification(currentProject.name, 'Undangan bergabung ke project tugas kelompok', newMember);
       notify(`Anggota "${name}" berhasil ditambahkan!`);
     } else {
       try {
         const r = await api.post(`/projects/${currentProject.id}/members`, payload);
         const newMember = { ...r.data, initial: initials, bg: selectedColor };
         setAllMembers([...allMembers, newMember]);
-        sendChangeNotification(currentProject.name, 'Undangan bergabung ke proyek tugas kelompok', newMember);
+        sendChangeNotification(currentProject.name, 'Undangan bergabung ke project tugas kelompok', newMember);
         notify(`Anggota "${name}" berhasil ditambahkan!`);
       } catch {
         notify('Gagal menambahkan anggota');
@@ -1136,7 +1200,7 @@ export default function App() {
 
   const handleDeleteMember = async (memberToDelete) => {
     if (!requireLogin(null, 'menghapus anggota tim')) return;
-    if (!confirm(`Hapus "${memberToDelete.name}" dari proyek ini?`)) return;
+    if (!confirm(`Hapus "${memberToDelete.name}" dari project ini?`)) return;
 
     if (demo) {
       setAllMembers(allMembers.filter(m => m.id !== memberToDelete.id));
@@ -1278,19 +1342,19 @@ export default function App() {
       if (demo) {
         setTimeout(() => {
           let response = '';
-          const projectName = currentProject?.name || 'Proyek Anda';
+          const projectName = currentProject?.name || 'Project Anda';
 
           if (currentProjectTasks.length === 0) {
-            response = `📌 **Proyek ${projectName}** belum memiliki tugas aktif.\n\nSaran langkah awal:\n1. Masukkan tugas sprint pertama via tombol **Tambah Tugas**.\n2. Atau buat konsep proyek baru via **Survey Ide AI**.`;
+            response = `📌 **Project ${projectName}** belum memiliki tugas aktif.\n\nSaran langkah awal:\n1. Masukkan tugas sprint pertama via tombol **Tambah Tugas**.\n2. Atau buat konsep project baru via **Survey Ide AI**.`;
           } else if (q.includes('prioritas') || q.includes('hari ini')) {
             const highTask = currentProjectTasks.find(t => t.priority === 'high' && t.status !== 'done');
             response = `🎯 **Prioritas Hari Ini untuk ${projectName}:**\n• Fokus utama: "${highTask ? highTask.title : 'Tuntaskan tugas in-progress'}"\n• Selesaikan ${stats.counts.doing} tugas yang sedang berjalan sebelum menambah pekerjaan baru.\n• Sinkronisasi dengan teman sekelompok untuk persiapan demo.`;
           } else if (q.includes('terlambat') || q.includes('risiko')) {
             response = `⚠️ **Analisis Risiko & Tenggat:**\n• Terdapat ${stats.overdueCount} tugas melewati deadline.\n• Segera sepakati revisi batas waktu atau bantu teman yang kesulitan.`;
           } else if (q.includes('laporan') || q.includes('bab')) {
-            response = `📝 **Struktur Laporan Proyek Kuliah (${projectName}):**\n• **Bab 1:** Latar belakang masalah & tujuan sistem\n• **Bab 2:** Landasan teori & tech stack\n• **Bab 3:** Perancangan sistem (ERD, DFD/UML, Wireframe UI)\n• **Bab 4:** Implementasi kode & pengujian (testing)\n• **Bab 5:** Kesimpulan & saran pengembangan`;
+            response = `📝 **Struktur Laporan Project Kuliah (${projectName}):**\n• **Bab 1:** Latar belakang masalah & tujuan sistem\n• **Bab 2:** Landasan teori & tech stack\n• **Bab 3:** Perancangan sistem (ERD, DFD/UML, Wireframe UI)\n• **Bab 4:** Implementasi kode & pengujian (testing)\n• **Bab 5:** Kesimpulan & saran pengembangan`;
           } else {
-            response = `📊 **Ringkasan Proyek ${projectName}:**\n• Total: ${stats.total} tugas • Progres: ${stats.progress}% selesai.\n• In-Progress: ${stats.counts.doing} • Review: ${stats.counts.review} • Selesai: ${stats.counts.done}.\n• Anggota: ${currentProjectMembers.length} orang aktif.`;
+            response = `📊 **Ringkasan Project ${projectName}:**\n• Total: ${stats.total} tugas • Progres: ${stats.progress}% selesai.\n• In-Progress: ${stats.counts.doing} • Review: ${stats.counts.review} • Selesai: ${stats.counts.done}.\n• Anggota: ${currentProjectMembers.length} orang aktif.`;
           }
           setChat(prev => [...prev, { role: 'assistant', text: response }]);
           setAiBusy(false);
@@ -1355,78 +1419,80 @@ export default function App() {
           </button>
         </div>
 
-        {/* Project Selector Dropdown (THE ONLY PLACE FOR PROJECT LIST) */}
-        <div className="sidebar-project-selector">
-          <button
-            className="project-selector-btn"
-            onClick={() => setProjectDropdown(!projectDropdown)}
-          >
-            <div className="project-selector-info">
-              <span className="project-selector-label">Proyek Aktif</span>
-              <span className="project-selector-name">{currentProject?.name || 'Pilih Proyek'}</span>
-            </div>
-            <ChevronDown size={15} color="#94a3b8" />
-          </button>
-
-          {projectDropdown && (
-            <div className="project-dropdown-menu">
-              {projects.map(p => {
-                const pTasks = allTasks.filter(t => t.project_id === p.id);
-                const pDone = pTasks.filter(t => t.status === 'done').length;
-                const pPct = pTasks.length ? Math.round((pDone / pTasks.length) * 100) : 0;
-                const isActive = currentProject?.id === p.id;
-
-                return (
-                  <div key={p.id} className={`project-dropdown-item ${isActive ? 'active' : ''}`}>
-                    <button
-                      className="project-item-btn"
-                      onClick={() => {
-                        setActiveProjectId(p.id);
-                        setProjectDropdown(false);
-                        setActiveTab('dashboard');
-                      }}
-                    >
-                      <span className="item-title">{p.name}</span>
-                      <span className="item-meta">{pTasks.length} tugas • {pPct}% selesai</span>
-                    </button>
-                    {projects.length > 1 && (
-                      <button
-                        className="item-delete-btn"
-                        onClick={(e) => handleDeleteProject(p, e)}
-                        title="Hapus proyek ini"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="project-dropdown-footer">
-                <button
-                  className="dropdown-action-btn"
-                  onClick={() => {
-                    setActiveTab('generator');
-                    setSurveyStep(1);
-                    setProjectDropdown(false);
-                  }}
-                >
-                  <Sparkles size={14} color="#ea580c" />
-                  <span>💡 Survey Ide Proyek AI</span>
-                </button>
-                <button
-                  className="dropdown-action-btn"
-                  onClick={() => {
-                    setModal('project');
-                    setProjectDropdown(false);
-                  }}
-                >
-                  <Plus size={14} />
-                  <span>Buat Proyek Manual</span>
-                </button>
+        {/* Project Selector Dropdown (THE ONLY PLACE FOR PROJECT LIST) - HIDDEN FOR GUEST */}
+        {!isGuest && (
+          <div className="sidebar-project-selector">
+            <button
+              className="project-selector-btn"
+              onClick={() => setProjectDropdown(!projectDropdown)}
+            >
+              <div className="project-selector-info">
+                <span className="project-selector-label">Project Aktif</span>
+                <span className="project-selector-name">{currentProject?.name || 'Pilih Project'}</span>
               </div>
-            </div>
-          )}
-        </div>
+              <ChevronDown size={15} color="#94a3b8" />
+            </button>
+
+            {projectDropdown && (
+              <div className="project-dropdown-menu">
+                {projects.map(p => {
+                  const pTasks = allTasks.filter(t => t.project_id === p.id);
+                  const pDone = pTasks.filter(t => t.status === 'done').length;
+                  const pPct = pTasks.length ? Math.round((pDone / pTasks.length) * 100) : 0;
+                  const isActive = currentProject?.id === p.id;
+
+                  return (
+                    <div key={p.id} className={`project-dropdown-item ${isActive ? 'active' : ''}`}>
+                      <button
+                        className="project-item-btn"
+                        onClick={() => {
+                          setActiveProjectId(p.id);
+                          setProjectDropdown(false);
+                          setActiveTab('dashboard');
+                        }}
+                      >
+                        <span className="item-title">{p.name}</span>
+                        <span className="item-meta">{pTasks.length} tugas • {pPct}% selesai</span>
+                      </button>
+                      {projects.length > 1 && (
+                        <button
+                          className="item-delete-btn"
+                          onClick={(e) => handleDeleteProject(p, e)}
+                          title="Hapus project ini"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="project-dropdown-footer">
+                  <button
+                    className="dropdown-action-btn"
+                    onClick={() => {
+                      setActiveTab('generator');
+                      setSurveyStep(1);
+                      setProjectDropdown(false);
+                    }}
+                  >
+                    <Sparkles size={14} color="#ea580c" />
+                    <span>💡 Survey Ide Project AI</span>
+                  </button>
+                  <button
+                    className="dropdown-action-btn"
+                    onClick={() => {
+                      setModal('project');
+                      setProjectDropdown(false);
+                    }}
+                  >
+                    <Plus size={14} />
+                    <span>Buat Project Manual</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sidebar Nav Items with TEXT */}
         <nav className="teamly-nav">
@@ -1526,7 +1592,7 @@ export default function App() {
               <input
                 type="text"
                 className="search-input"
-                placeholder="Cari tugas di proyek ini..."
+                placeholder="Cari tugas di project ini..."
                 value={searchQuery}
                 onFocus={() => setShowSearchDropdown(true)}
                 onChange={e => {
@@ -1675,7 +1741,7 @@ export default function App() {
         {/* ================= TAB 0: DASHBOARD ================= */}
         {activeTab === 'dashboard' && (
           <div className="page-container">
-            {/* Header Row: With + Tambah Proyek and + Tambah Tugas buttons */}
+            {/* Header Row: With + Tambah Project and + Tambah Tugas buttons */}
             <div className="page-header-row">
               <div>
                 <h1 className="page-main-title">{currentProject?.name}</h1>
@@ -1687,10 +1753,10 @@ export default function App() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   className="btn-add-project"
-                  onClick={() => requireLogin(() => setModal('project'), 'menambah proyek baru')}
+                  onClick={() => requireLogin(() => setModal('project'), 'menambah project baru')}
                 >
                   <Plus size={15} />
-                  <span>Tambah Proyek</span>
+                  <span>Tambah Project</span>
                 </button>
                 <button
                   className="btn-add-task"
@@ -1707,7 +1773,7 @@ export default function App() {
               {/* Card 1: Total Tugas (Warm Orange) */}
               <div className="metric-banner-card orange-theme">
                 <div className="metric-card-top">
-                  <span className="metric-pill-tag">Sprint Proyek</span>
+                  <span className="metric-pill-tag">Sprint Project</span>
                   <span className="metric-sub-title">Semua Tugas Terdaftar</span>
                 </div>
                 <div className="metric-card-main">
@@ -2075,7 +2141,7 @@ export default function App() {
                     <div className="question-header">
                       <div className="question-badge">4</div>
                       <div>
-                        <h2 className="question-title">Target skala dan kompleksitas proyek?</h2>
+                        <h2 className="question-title">Target skala dan kompleksitas project?</h2>
                         <p className="question-sub">Tentukan seberapa mendalam fitur yang ingin dikerjakan:</p>
                       </div>
                     </div>
@@ -2143,7 +2209,7 @@ export default function App() {
                       ) : (
                         <>
                           <Sparkles size={18} />
-                          <span>✨ Rekomendasikan 3 Ide Proyek (AI Decision)</span>
+                          <span>✨ Rekomendasikan 3 Ide Project (AI Decision)</span>
                         </>
                       )}
                     </button>
@@ -2155,7 +2221,7 @@ export default function App() {
               <div className="survey-results-wrap">
                 <div className="results-top-nav">
                   <div>
-                    <h2 className="results-main-title">🎯 3 Konsep Proyek Rekomendasi AI</h2>
+                    <h2 className="results-main-title">🎯 3 Konsep Project Rekomendasi AI</h2>
                     <p className="results-main-sub">
                       Pilih salah satu konsep untuk langsung membuka workspace dan sprint tugas:
                     </p>
@@ -2315,10 +2381,17 @@ export default function App() {
                                 <div className="card-item-foot">
                                   <div className="card-assignee">
                                     <div className="card-user-circle">
-                                      {(t.assignee || 'M').slice(0, 2).toUpperCase()}
+                                      {(!t.assignee || t.assignee === 'Unassigned') ? '?' : t.assignee.slice(0, 2).toUpperCase()}
                                     </div>
-                                    <span className="card-user-name">{t.assignee || 'Unassigned'}</span>
+                                    <span className="card-user-name">
+                                      {(!t.assignee || t.assignee === 'Unassigned') ? 'Belum Ditugaskan' : t.assignee}
+                                    </span>
                                   </div>
+                                  {t.comments && t.comments.length > 0 && (
+                                    <span className="card-comments-pill" title={`${t.comments.length} feedback/diskusi`}>
+                                      <MessageSquare size={11} /> {t.comments.length}
+                                    </span>
+                                  )}
                                   {t.deadline && (
                                     <div className={`card-deadline ${isOverdue ? 'overdue' : ''}`}>
                                       <Calendar size={12} />
@@ -2418,7 +2491,16 @@ export default function App() {
                               {t.title}
                             </div>
                           </td>
-                          <td>{t.assignee || 'Unassigned'}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>{(!t.assignee || t.assignee === 'Unassigned') ? 'Belum Ditugaskan' : t.assignee}</span>
+                              {t.comments && t.comments.length > 0 && (
+                                <span className="card-comments-pill" title={`${t.comments.length} feedback/diskusi`}>
+                                  <MessageSquare size={10} /> {t.comments.length}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td><span className={`priority-pill ${t.priority}`}>{t.priority}</span></td>
                           <td>{t.deadline || '—'}</td>
                           <td>
@@ -2514,7 +2596,7 @@ export default function App() {
               <div>
                 <h1 className="page-main-title">AI Pembimbing — {currentProject?.name}</h1>
                 <p className="page-main-sub">
-                  Konsultasikan kesulitan kode, pembagian sprint tugas, atau susunan laporan bab proyek kuliah.
+                  Konsultasikan kesulitan kode, pembagian sprint tugas, atau susunan laporan bab project kuliah.
                 </p>
               </div>
             </div>
@@ -2794,7 +2876,68 @@ export default function App() {
                 />
               </div>
 
-              <div className="modal-actions">
+              {/* Task Comments & Member Feedback Section */}
+              <div className="task-comments-section">
+                <div className="task-comments-header">
+                  <div className="task-comments-title">
+                    <MessageSquare size={15} color="#ea580c" />
+                    <span>Feedback & Diskusi Tugas</span>
+                    <span className="comments-count-pill">
+                      {(selectedTask.comments || []).length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="task-comments-list">
+                  {(selectedTask.comments || []).length === 0 ? (
+                    <div className="task-comments-empty">
+                      Belum ada feedback untuk tugas ini. Anggota yang ditugaskan dapat menambahkan catatan atau progres di bawah.
+                    </div>
+                  ) : (
+                    (selectedTask.comments || []).map((c) => (
+                      <div className="comment-item-card" key={c.id}>
+                        <div className="comment-header-row">
+                          <div className="comment-author-badge">
+                            <div className="comment-avatar-bubble">
+                              {(c.author || 'A').slice(0, 1).toUpperCase()}
+                            </div>
+                            <span className="comment-author-name">{c.author}</span>
+                            {c.role && <span className="comment-role-tag">{c.role}</span>}
+                          </div>
+                          <span className="comment-timestamp">{c.time}</span>
+                        </div>
+                        <p className="comment-text-body">{c.text}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="comment-input-wrap">
+                  <input
+                    type="text"
+                    className="comment-text-input"
+                    placeholder="Tulis feedback atau update tugas..."
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddComment(e);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-send-comment"
+                    disabled={!newCommentText.trim()}
+                    onClick={handleAddComment}
+                  >
+                    <span>Kirim</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="modal-actions" style={{ marginTop: '20px' }}>
                 <button
                   type="button"
                   className="btn-cancel"
@@ -2889,14 +3032,14 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setModal('')}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Buat Proyek Tugas Kuliah Baru</h3>
+              <h3 className="modal-title">Buat Project Tugas Kuliah Baru</h3>
               <button className="modal-close-btn" onClick={() => setModal('')}>
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={handleCreateProject}>
               <div className="form-group">
-                <label className="form-label">Nama Proyek *</label>
+                <label className="form-label">Nama Project *</label>
                 <input
                   name="name"
                   className="form-input"
@@ -2916,7 +3059,7 @@ export default function App() {
                 <textarea
                   name="description"
                   className="form-textarea"
-                  placeholder="Cakupan dan target proyek..."
+                  placeholder="Cakupan dan target project..."
                 />
               </div>
 
@@ -2925,7 +3068,7 @@ export default function App() {
                   Batal
                 </button>
                 <button type="submit" className="btn-primary">
-                  Buat Proyek
+                  Buat Project
                 </button>
               </div>
             </form>

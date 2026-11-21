@@ -179,7 +179,7 @@ export default function AuthPage({
             <span className="welcome-ai-badge">AI</span>
           </div>
           <p className="auth-clean-sub">
-            {mode === 'login' ? 'Masuk untuk mengelola proyek & tugas kelompok' : 'Daftar akun baru untuk mulai berkolaborasi'}
+            {mode === 'login' ? 'Masuk untuk mengelola project & tugas kelompok' : 'Daftar akun baru untuk mulai berkolaborasi'}
           </p>
         </div>
 

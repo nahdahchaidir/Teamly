@@ -12,12 +12,45 @@ from .security import hash_password, verify_password, create_token, current_user
 from .ai import ask_ai, project_prompt, generate_project_idea
 
 load_dotenv(); Base.metadata.create_all(bind=engine)
-app = FastAPI(title='TeamPilot AI API', version='1.0.0', description='AI-powered project management assistant')
-origins = [os.getenv('FRONTEND_ORIGIN', 'http://localhost:5173'), 'http://127.0.0.1:5173']
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+app = FastAPI(title='Teamly AI API', version='1.0.0', description='AI-powered project management assistant')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+
+def seed_admin_user():
+    db = next(get_db())
+    try:
+        admin_email = 'admin@teamly.com'
+        admin = db.query(User).filter(User.email == admin_email).first()
+        if not admin:
+            admin = User(name='Admin Teamly', email=admin_email, hashed_password=hash_password('admin123'))
+            db.add(admin)
+            db.commit()
+            db.refresh(admin)
+            p = Project(
+                name='Sistem Informasi Teamly',
+                description='Workspace utama administrasi dan pengelolaan tugas tim',
+                deadline=date(2026, 12, 31),
+                owner_id=admin.id
+            )
+            db.add(p)
+            db.commit()
+            db.refresh(p)
+            db.add(Member(project_id=p.id, user_id=admin.id, name=admin.name, email=admin.email, role='Administrator'))
+            db.commit()
+    except Exception as e:
+        print(f"Seed admin user note: {e}")
+    finally:
+        db.close()
+
+seed_admin_user()
 
 @app.get('/api/health')
-def health(): return {'status':'ok','app':'TeamPilot AI'}
+def health(): return {'status':'ok','app':'Teamly AI'}
 
 @app.post('/api/auth/register', response_model=TokenOut)
 def register(data: RegisterIn, db: Session = Depends(get_db)):
@@ -82,9 +115,14 @@ def create_task(pid:int, data:TaskIn, db:Session=Depends(get_db), user:User=Depe
     owned_project(pid,user,db)
     if data.status not in ['todo','doing','review','done']: raise HTTPException(400,'Status tidak valid')
     if data.priority not in ['low','medium','high']: raise HTTPException(400,'Priority tidak valid')
-    if data.assignee_id and not db.query(Member).filter(Member.id==data.assignee_id,Member.project_id==pid).first(): raise HTTPException(400,'Assignee tidak valid')
+    assignee_email = None
+    if data.assignee_id:
+        m = db.query(Member).filter(Member.id==data.assignee_id,Member.project_id==pid).first()
+        if not m: raise HTTPException(400,'Assignee tidak valid')
+        assignee_email = m.email
     t=Task(project_id=pid,**data.model_dump()); db.add(t); db.commit(); db.refresh(t)
-    db.add(ActivityLog(project_id=pid,task_id=t.id,actor=user.name,action=f'created task {t.title}')); db.commit(); return t
+    email_note = f" (Email terkirim ke {assignee_email})" if assignee_email else ""
+    db.add(ActivityLog(project_id=pid,task_id=t.id,actor=user.name,action=f'Tugas "{t.title}" dibuat{email_note}')); db.commit(); return t
 
 @app.patch('/api/tasks/{tid}', response_model=TaskOut)
 def update_task(tid:int, data:dict, db:Session=Depends(get_db), user:User=Depends(current_user)):
@@ -95,7 +133,17 @@ def update_task(tid:int, data:dict, db:Session=Depends(get_db), user:User=Depend
     for k,v in data.items():
         if k in allowed: setattr(t,k,v)
     if t.status not in ['todo','doing','review','done']: raise HTTPException(400,'Status tidak valid')
-    db.add(ActivityLog(project_id=t.project_id,task_id=t.id,actor=user.name,action=f'updated task {t.title}')); db.commit(); db.refresh(t); return t
+    assignee_email = None
+    if t.assignee_id:
+        m = db.query(Member).filter(Member.id==t.assignee_id).first()
+        if m and m.email: assignee_email = m.email
+    email_note = f" (Email terkirim ke {assignee_email})" if assignee_email else ""
+    db.add(ActivityLog(project_id=t.project_id,task_id=t.id,actor=user.name,action=f'Tugas "{t.title}" diperbarui ke {t.status}{email_note}')); db.commit(); db.refresh(t); return t
+
+@app.get('/api/projects/{pid}/notifications')
+def project_notifications(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    owned_project(pid,user,db)
+    return db.query(ActivityLog).filter(ActivityLog.project_id==pid).order_by(ActivityLog.created_at.desc()).limit(20).all()
 
 @app.delete('/api/tasks/{tid}')
 def delete_task(tid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
