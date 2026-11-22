@@ -3060,33 +3060,12 @@ export default function App() {
                   Atur peran dan pembagian beban tugas kuliah secara adil.
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button
-                  className="btn-ghost-sm"
-                  style={{ background: 'white', borderColor: '#fdba74', color: '#c2410c' }}
-                  onClick={handleTestEmail}
-                  title="Tes koneksi pengiriman email Gmail SMTP"
-                >
-                  ✉️ Tes Email Gmail
-                </button>
-                <button
-                  className="btn-add-task"
-                  onClick={() => requireLogin(() => setModal('member'), 'menambah anggota kelompok')}
-                >
-                  <UserPlus size={14} /> Tambah Teman Kelompok
-                </button>
-              </div>
-            </div>
-
-            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '12px 16px', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#ea580c', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
-                  📧
-                </div>
-                <div style={{ fontSize: '12.5px', color: '#9a3412', lineHeight: '1.4' }}>
-                  <strong>Integrasi Notifikasi Gmail Aktif:</strong> Saat Project Leader menambahkan member dengan alamat Gmail atau membagikan tugas baru, rincian tugas otomatis dikirimkan langsung ke kotak masuk email member tersebut.
-                </div>
-              </div>
+              <button
+                className="btn-add-task"
+                onClick={() => requireLogin(() => setModal('member'), 'menambah anggota kelompok')}
+              >
+                <UserPlus size={14} /> Tambah Teman Kelompok
+              </button>
             </div>
 
             {currentProjectMembers.length === 0 ? (
