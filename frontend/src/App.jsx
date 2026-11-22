@@ -69,13 +69,13 @@ const defaultDemoProjects = [
 
 const defaultDemoMembers = [
   // Project 1 Members
-  { id: 1, project_id: 1, name: 'Nadia Putri', role: 'UI/UX Designer & Dokumen', email: 'nadia@kampus.ac.id', initial: 'NP', bg: '#6366f1' },
-  { id: 2, project_id: 1, name: 'Rizky Pratama', role: 'Backend & Database Engineer', email: 'rizky@kampus.ac.id', initial: 'RP', bg: '#059669' },
-  { id: 3, project_id: 1, name: 'Fajar Ramadhan', role: 'Frontend Developer', email: 'fajar@kampus.ac.id', initial: 'FR', bg: '#d97706' },
+  { id: 1, project_id: 1, name: 'Nadia Putri', role: 'Project Leader', email: 'nadia@kampus.ac.id', initial: 'NP', bg: '#6366f1' },
+  { id: 2, project_id: 1, name: 'Rizky Pratama', role: 'Member', email: 'rizky@kampus.ac.id', initial: 'RP', bg: '#059669' },
+  { id: 3, project_id: 1, name: 'Fajar Ramadhan', role: 'Member', email: 'fajar@kampus.ac.id', initial: 'FR', bg: '#d97706' },
 
   // Project 2 Members
-  { id: 4, project_id: 2, name: 'Budi Santoso', role: 'Fullstack Developer', email: 'budi@kampus.ac.id', initial: 'BS', bg: '#8b5cf6' },
-  { id: 5, project_id: 2, name: 'Siti Rahma', role: 'UI/UX & Tester', email: 'siti@kampus.ac.id', initial: 'SR', bg: '#ec4899' }
+  { id: 4, project_id: 2, name: 'Budi Santoso', role: 'Project Leader', email: 'budi@kampus.ac.id', initial: 'BS', bg: '#8b5cf6' },
+  { id: 5, project_id: 2, name: 'Siti Rahma', role: 'Member', email: 'siti@kampus.ac.id', initial: 'SR', bg: '#ec4899' }
 ];
 
 const defaultDemoTasks = [
@@ -561,10 +561,26 @@ export default function App() {
     return allTasks.filter(t => t.project_id === currentProject.id);
   }, [allTasks, currentProject]);
 
-  // Members of CURRENT project ONLY
+  // Members of CURRENT project ONLY (deduplicated & normalized role: Project Leader / Member)
   const currentProjectMembers = useMemo(() => {
     if (!currentProject) return [];
-    return allMembers.filter(m => m.project_id === currentProject.id);
+    const pMembers = allMembers.filter(m => m.project_id === currentProject.id);
+    const seen = new Set();
+    const unique = [];
+    for (const m of pMembers) {
+      const key = (m.email && m.email.trim())
+        ? m.email.trim().toLowerCase()
+        : (m.name || '').trim().toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        const rLower = (m.role || '').trim().toLowerCase();
+        const roleNorm = (rLower && ['project leader', 'project lead', 'leader', 'lead', 'administrator', 'admin', 'project owner', 'owner'].includes(rLower))
+          ? 'Project Leader'
+          : 'Member';
+        unique.push({ ...m, role: roleNorm });
+      }
+    }
+    return unique;
   }, [allMembers, currentProject]);
 
   // Navigation: 'dashboard' | 'generator' | 'tasks' | 'team'
@@ -661,6 +677,9 @@ export default function App() {
   // Modals & Popovers
   const [modal, setModal] = useState(''); // 'task' | 'edit_task' | 'project' | 'member' | 'auth'
   const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null); // untuk modal edit member
+  const [taskModalTab, setTaskModalTab] = useState('details'); // 'details' | 'chat'
+  const [memberTaskFilter, setMemberTaskFilter] = useState('mine'); // 'mine' | 'all'
   const [newCommentText, setNewCommentText] = useState('');
   const [selectedColor, setSelectedColor] = useState(colorOptions[0].hex);
   const [authMode, setAuthMode] = useState('login');
@@ -903,9 +922,9 @@ export default function App() {
     return { counts, total, progress, highPriorityCount, overdueCount, activeTasks };
   }, [currentProjectTasks, visibleTasks, isMember]);
 
-  // Filtered Tasks for CURRENT PROJECT (anggota hanya lihat tugasnya)
+  // Filtered Tasks for CURRENT PROJECT (anggota bisa memilih tugas saya atau semua tugas tim)
   const filteredTasks = useMemo(() => {
-    const baseTasks = isMember ? visibleTasks : currentProjectTasks;
+    const baseTasks = (isMember && memberTaskFilter === 'mine') ? visibleTasks : currentProjectTasks;
     return baseTasks.filter(t => {
       const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (t.assignee && t.assignee.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -914,7 +933,7 @@ export default function App() {
       const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter;
       return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [currentProjectTasks, visibleTasks, isMember, searchQuery, statusFilter, priorityFilter]);
+  }, [currentProjectTasks, visibleTasks, isMember, memberTaskFilter, searchQuery, statusFilter, priorityFilter]);
 
   // Instant live search matches
   const searchMatches = useMemo(() => {
@@ -1162,45 +1181,77 @@ export default function App() {
     }
   };
 
-  const handleAddComment = (e) => {
-    e.preventDefault();
+  const handleAddComment = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!requireLogin(null, 'memberikan feedback atau komentar tugas')) return;
     if (!newCommentText.trim() || !selectedTask) return;
 
+    const textToSend = newCommentText.trim();
+    setNewCommentText('');
+
     // Gunakan nama user yang sedang login
     const commenterName = user?.name || 'Anggota Tim';
-    // Role badge: Project Lead atau role spesifik anggota
-    let commenterRole;
-    if (isLead) {
-      commenterRole = 'Project Lead';
-    } else {
-      const memberObj = currentProjectMembers.find(
-        m => m.email?.toLowerCase() === user?.email?.toLowerCase()
-      );
-      commenterRole = memberObj?.role || 'Anggota';
-    }
+    const commenterRole = isLead ? 'Project Leader' : 'Member';
 
-    const newComment = {
+    const tempComment = {
       id: 'cmt_' + Date.now(),
+      task_id: selectedTask.id,
+      user_id: user?.id || null,
       author: commenterName,
       role: commenterRole,
-      isLead: isLead,
-      text: newCommentText.trim(),
-      time: 'Baru saja'
+      text: textToSend,
+      time: 'Baru saja',
+      created_at: new Date().toISOString()
     };
 
-    const updatedComments = [...(selectedTask.comments || []), newComment];
+    const updatedComments = [...(selectedTask.comments || []), tempComment];
     const updatedTask = { ...selectedTask, comments: updatedComments };
 
     setSelectedTask(updatedTask);
     setAllTasks(prev => prev.map(t => (t.id === selectedTask.id ? updatedTask : t)));
-    setNewCommentText('');
 
     sendChangeNotification(
       selectedTask,
-      `Feedback baru dari ${commenterName}: "${newComment.text.slice(0, 35)}..."`,
+      `Feedback baru dari ${commenterName}: "${textToSend.slice(0, 35)}..."`,
       selectedTask.assignee || commenterName
     );
+
+    // Kirim ke backend jika user login dan task valid
+    if (!demo && token && typeof selectedTask.id === 'number') {
+      try {
+        const r = await api.post(`/tasks/${selectedTask.id}/comments`, { text: textToSend });
+        const serverComment = {
+          ...r.data,
+          time: 'Baru saja'
+        };
+        setSelectedTask(prev => {
+          if (!prev || prev.id !== selectedTask.id) return prev;
+          const filtered = (prev.comments || []).filter(c => c.id !== tempComment.id);
+          return { ...prev, comments: [...filtered, serverComment] };
+        });
+        setAllTasks(prev => prev.map(t => {
+          if (t.id !== selectedTask.id) return t;
+          const filtered = (t.comments || []).filter(c => c.id !== tempComment.id);
+          return { ...t, comments: [...filtered, serverComment] };
+        }));
+      } catch (err) {
+        console.error('Failed to post comment to backend:', err);
+      }
+    }
+
+    // Fallback sync ke shared storage
+    try {
+      const sharedRaw = localStorage.getItem('tp_shared_data');
+      if (sharedRaw) {
+        const sharedData = JSON.parse(sharedRaw);
+        const tIdx = (sharedData.tasks || []).findIndex(t => t.id === selectedTask.id);
+        if (tIdx >= 0) {
+          sharedData.tasks[tIdx].comments = updatedComments;
+          localStorage.setItem('tp_shared_data', JSON.stringify(sharedData));
+        }
+      }
+    } catch {}
+
     notify('Feedback tugas berhasil dikirim! 💬');
   };
 
@@ -1223,9 +1274,9 @@ export default function App() {
       id: Date.now() + 1,
       project_id: newP.id,
       name: user?.name || 'Ketua Kelompok',
-      role: 'Project Lead',
-      email: user?.email || 'ketua@kampus.ac.id',
-      initial: (user?.name || 'KT').slice(0, 2).toUpperCase(),
+      role: 'Project Leader',
+      email: user?.email || '',
+      initial: (user?.name || 'PL').slice(0, 2).toUpperCase(),
       bg: '#6366f1'
     };
     const updatedProjects = [newP, ...projects];
@@ -1333,14 +1384,28 @@ export default function App() {
     if (!requireLogin(null, 'menambah anggota baru')) return;
     if (!currentProject) { notify('Pilih project terlebih dahulu'); return; }
     const f = new FormData(e.currentTarget);
+    const memberName = (f.get('name') || '').toString().trim();
     const memberEmail = (f.get('email') || '').toString().trim().toLowerCase();
+    const inputRole = (f.get('role') || 'Member').toString().trim();
+    const memberRole = inputRole === 'Project Leader' ? 'Project Leader' : 'Member';
+
+    // Cek duplikasi agar tidak ada teman kelompok yang double
+    const isDuplicate = currentProjectMembers.some(m =>
+      (memberEmail && m.email && m.email.toLowerCase() === memberEmail) ||
+      (memberName && m.name && m.name.toLowerCase() === memberName.toLowerCase())
+    );
+    if (isDuplicate) {
+      notify('Teman kelompok ini sudah terdaftar dalam project!');
+      return;
+    }
+
     const newMember = {
       id: Date.now(),
       project_id: currentProject.id,
-      name: f.get('name'),
-      role: f.get('role'),
+      name: memberName,
+      role: memberRole,
       email: memberEmail,
-      initial: (f.get('name') || 'AN').slice(0, 2).toUpperCase(),
+      initial: (memberName || 'TM').slice(0, 2).toUpperCase(),
       bg: selectedColor
     };
     setAllMembers(prev => [...prev, newMember]);
@@ -1391,6 +1456,70 @@ export default function App() {
     // Try backend non-blocking (real JWT only)
     if (!demo && token) {
       try { await api.delete(`/projects/${currentProject.id}/members/${memberToDelete.id}`); } catch {}
+    }
+  };
+
+  const handleEditMember = async (e) => {
+    e.preventDefault();
+    if (!requireLogin(null, 'mengedit anggota tim')) return;
+    if (!selectedMember) return;
+    const f = new FormData(e.currentTarget);
+    const memberName = (f.get('name') || '').toString().trim();
+    const memberEmail = (f.get('email') || '').toString().trim().toLowerCase();
+    const inputRole = (f.get('role') || 'Member').toString().trim();
+    const memberRole = inputRole === 'Project Leader' ? 'Project Leader' : 'Member';
+    const memberColor = f.get('color') || selectedMember.bg || colorOptions[0].hex;
+
+    if (!memberName) { notify('Nama tidak boleh kosong'); return; }
+
+    // Cek duplikasi email dengan member lain
+    if (memberEmail) {
+      const dup = currentProjectMembers.find(m =>
+        m.id !== selectedMember.id &&
+        m.email && m.email.toLowerCase() === memberEmail
+      );
+      if (dup) { notify(`Email ${memberEmail} sudah digunakan oleh ${dup.name}`); return; }
+    }
+
+    // Update lokal dulu
+    const updated = {
+      ...selectedMember,
+      name: memberName,
+      email: memberEmail,
+      role: memberRole,
+      bg: memberColor,
+      initial: memberName.slice(0, 2).toUpperCase()
+    };
+    setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? updated : m));
+    notify(`Data ${memberName} berhasil diperbarui!`);
+    setModal('');
+    setSelectedMember(null);
+
+    // Sync ke backend
+    if (!demo && token) {
+      try {
+        const r = await api.patch(`/projects/${currentProject.id}/members/${selectedMember.id}`, {
+          name: memberName,
+          email: memberEmail,
+          role: memberRole
+        });
+        setAllMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...r.data, bg: memberColor, initial: memberName.slice(0, 2).toUpperCase() } : m));
+      } catch (err) {
+        notify(getApiErrorMessage(err, 'Gagal memperbarui data anggota'));
+      }
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!requireLogin(null, 'menguji kirim email')) return;
+    const dest = prompt('Masukkan alamat email Gmail penerima tes:', user?.email || '');
+    if (!dest || !dest.includes('@')) return;
+    try {
+      notify('Mengirim email tes via Gmail SMTP...');
+      const res = await api.post('/test-email', { email: dest });
+      notify(res.data.message || 'Email tes berhasil dikirim!');
+    } catch (err) {
+      notify(getApiErrorMessage(err, 'Gagal mengirim email tes. Periksa SMTP di backend/.env'));
     }
   };
 
@@ -1484,6 +1613,8 @@ export default function App() {
         initialMode={authInitialMode}
         customPrompt={authModalPrompt}
         onSuccess={(newUser, newToken) => {
+          localStorage.setItem('tp_token', newToken);
+          localStorage.setItem('tp_user', JSON.stringify(newUser));
           setUser(newUser);
           setToken(newToken);
           setDemo(false);
@@ -1494,6 +1625,8 @@ export default function App() {
           setAllMembers([]);
           setCurrentView('workspace');
           notify('Berhasil masuk ke akun!');
+          // Load projects setelah login berhasil
+          setTimeout(() => loadBackendProjects(), 100);
         }}
         onGoToLanding={() => setCurrentView('workspace')}
         onEnterDemo={() => {
@@ -1826,7 +1959,17 @@ export default function App() {
               )}
             </div>
 
-            {/* User Avatar or Guest Login Button */}
+            {/* User Avatar & Role Badge */}
+            {!isGuest && (
+              <div className="topbar-role-badge">
+                {isLead ? (
+                  <span className="badge-role-lead">👑 Project Leader</span>
+                ) : (
+                  <span className="badge-role-member">👤 Member</span>
+                )}
+              </div>
+            )}
+
             {isGuest ? (
               <button
                 className="btn-topbar-login"
@@ -1838,7 +1981,7 @@ export default function App() {
               <div
                 className="user-top-avatar"
                 onClick={() => { setAuthInitialMode('login'); setCurrentView('auth'); }}
-                title={user?.name || 'Pengguna'}
+                title={`${user?.name || 'Pengguna'} (${isLead ? 'Project Leader' : 'Member'})`}
               >
                 {(user?.name || 'M').slice(0, 1).toUpperCase()}
               </div>
@@ -2619,6 +2762,34 @@ export default function App() {
               </div>
             </div>
 
+            {/* Sudut Pandang Member / Leader Banner */}
+            {isMember && (
+              <div className="member-perspective-box">
+                <div className="member-perspective-content">
+                  <span className="member-badge-pill">👤 Sudut Pandang Member: {user?.name || 'Anggota'}</span>
+                  <p>
+                    Menampilkan tugas kelompok. Gunakan tombol <strong>Feedback (💬)</strong> pada kartu tugas untuk berdiskusi langsung dengan <strong>Project Leader</strong>.
+                  </p>
+                </div>
+                <div className="member-filter-switch">
+                  <button
+                    type="button"
+                    className={`member-switch-pill ${memberTaskFilter === 'mine' ? 'active' : ''}`}
+                    onClick={() => setMemberTaskFilter('mine')}
+                  >
+                    Tugas Saya ({visibleTasks.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`member-switch-pill ${memberTaskFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setMemberTaskFilter('all')}
+                  >
+                    Semua Tugas Tim ({currentProjectTasks.length})
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Kanban Board View */}
             {taskView === 'board' && (
               <div className="kanban-columns-grid">
@@ -2726,14 +2897,25 @@ export default function App() {
 
                                   <div className="card-icons-wrap">
                                     <button
-                                      className="card-action-icon"
-                                      onClick={() => { setSelectedTask(t); setModal('edit_task'); }}
-                                      title={isMember ? 'Lihat detail & beri feedback' : 'Edit tugas'}
+                                      type="button"
+                                      className="card-action-icon feedback-btn"
+                                      onClick={() => { setSelectedTask(t); setTaskModalTab('chat'); setModal('edit_task'); }}
+                                      title="Feedback & Diskusi Chat"
                                     >
-                                      {isMember ? <MessageSquare size={12} /> : <Edit2 size={12} />}
+                                      <MessageSquare size={12} />
+                                      {(t.comments || []).length > 0 && <span className="card-badge-num">{(t.comments || []).length}</span>}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="card-action-icon"
+                                      onClick={() => { setSelectedTask(t); setTaskModalTab('details'); setModal('edit_task'); }}
+                                      title={isMember ? 'Lihat Detail Tugas' : 'Edit Tugas'}
+                                    >
+                                      <Edit2 size={12} />
                                     </button>
                                     {isLead && (
                                       <button
+                                        type="button"
                                         className="card-action-icon del"
                                         onClick={() => deleteTask(t)}
                                         title="Hapus tugas"
@@ -2821,12 +3003,28 @@ export default function App() {
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                              <button className="card-action-icon" onClick={() => { setSelectedTask(t); setModal('edit_task'); }}>
+                              <button
+                                type="button"
+                                className="card-action-icon feedback-btn"
+                                onClick={() => { setSelectedTask(t); setTaskModalTab('chat'); setModal('edit_task'); }}
+                                title="Feedback & Diskusi Chat"
+                              >
+                                <MessageSquare size={12} />
+                                {(t.comments || []).length > 0 && <span className="card-badge-num">{(t.comments || []).length}</span>}
+                              </button>
+                              <button
+                                type="button"
+                                className="card-action-icon"
+                                onClick={() => { setSelectedTask(t); setTaskModalTab('details'); setModal('edit_task'); }}
+                                title={isMember ? 'Lihat Detail Tugas' : 'Edit Tugas'}
+                              >
                                 <Edit2 size={13} />
                               </button>
-                              <button className="card-action-icon del" onClick={() => deleteTask(t)}>
-                                <Trash2 size={13} />
-                              </button>
+                              {isLead && (
+                                <button type="button" className="card-action-icon del" onClick={() => deleteTask(t)} title="Hapus tugas">
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2849,12 +3047,33 @@ export default function App() {
                   Atur peran dan pembagian beban tugas kuliah secara adil.
                 </p>
               </div>
-              <button
-                className="btn-add-task"
-                onClick={() => requireLogin(() => setModal('member'), 'menambah anggota kelompok')}
-              >
-                <UserPlus size={14} /> Tambah Teman Kelompok
-              </button>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button
+                  className="btn-ghost-sm"
+                  style={{ background: 'white', borderColor: '#fdba74', color: '#c2410c' }}
+                  onClick={handleTestEmail}
+                  title="Tes koneksi pengiriman email Gmail SMTP"
+                >
+                  ✉️ Tes Email Gmail
+                </button>
+                <button
+                  className="btn-add-task"
+                  onClick={() => requireLogin(() => setModal('member'), 'menambah anggota kelompok')}
+                >
+                  <UserPlus size={14} /> Tambah Teman Kelompok
+                </button>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '12px 16px', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#ea580c', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
+                  📧
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#9a3412', lineHeight: '1.4' }}>
+                  <strong>Integrasi Notifikasi Gmail Aktif:</strong> Saat Project Leader menambahkan member dengan alamat Gmail atau membagikan tugas baru, rincian tugas otomatis dikirimkan langsung ke kotak masuk email member tersebut.
+                </div>
+              </div>
             </div>
 
             {currentProjectMembers.length === 0 ? (
@@ -2885,13 +3104,23 @@ export default function App() {
 
                     <div className="member-card-lower">
                       <span className="member-tasks-pill">{activeCount} tugas aktif</span>
-                      <button
-                        className="card-action-icon del"
-                        onClick={() => handleDeleteMember(m)}
-                        title="Hapus anggota"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          className="card-action-icon"
+                          onClick={() => { setSelectedMember(m); setModal('edit_member'); }}
+                          title="Edit anggota"
+                          style={{ color: '#3b82f6', borderColor: '#bfdbfe', background: '#eff6ff' }}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          className="card-action-icon del"
+                          onClick={() => handleDeleteMember(m)}
+                          title="Hapus anggota"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -3006,177 +3235,256 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal: Edit Task */}
+      {/* Modal: Edit Task & Feedback Chat */}
       {modal === 'edit_task' && selectedTask && (
         <div className="modal-overlay" onClick={() => { setModal(''); setSelectedTask(null); }}>
-          <div className="modal-card" onClick={e => e.stopPropagation()}>
+          <div className="modal-card modal-task-large" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Edit Tugas</h3>
+              <div className="task-modal-header-info">
+                <span className="task-modal-cat-badge">{selectedTask.category || 'Tugas Sprint'}</span>
+                <h3 className="modal-title">{selectedTask.title}</h3>
+              </div>
               <button className="modal-close-btn" onClick={() => { setModal(''); setSelectedTask(null); }}>
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleUpdateTask}>
-              <div className="form-group">
-                <label className="form-label">Nama Tugas *</label>
-                <input
-                  name="title"
-                  className="form-input"
-                  required
-                  defaultValue={selectedTask.title}
-                  autoFocus
-                  disabled={isMember}
-                />
-              </div>
 
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Kategori</label>
-                  <input
-                    name="category"
-                    className="form-input"
-                    defaultValue={selectedTask.category || 'Frontend'}
-                    disabled={isMember}
-                  />
-                </div>
+            {/* Segmented Tab Switcher: Detail Tugas VS Feedback Chat */}
+            <div className="task-modal-segmented-tabs">
+              <button
+                type="button"
+                className={`task-segment-btn ${taskModalTab === 'details' ? 'active' : ''}`}
+                onClick={() => setTaskModalTab('details')}
+              >
+                <Edit2 size={14} />
+                <span>Detail & Pengaturan Tugas</span>
+              </button>
+              <button
+                type="button"
+                className={`task-segment-btn ${taskModalTab === 'chat' ? 'active' : ''}`}
+                onClick={() => setTaskModalTab('chat')}
+              >
+                <MessageSquare size={14} />
+                <span>Ruang Chat & Feedback</span>
+                {(selectedTask.comments || []).length > 0 && (
+                  <span className="task-segment-badge">{(selectedTask.comments || []).length}</span>
+                )}
+              </button>
+            </div>
 
-                <div className="form-group">
-                  <label className="form-label">Slot Waktu</label>
-                  <select name="time_slot" className="form-select" defaultValue={selectedTask.time_slot || '11.00'} disabled={isMember}>
-                    {timelineHours.map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Prioritas</label>
-                  <select name="priority" className="form-select" defaultValue={selectedTask.priority} disabled={isMember}>
-                    <option value="high">Tinggi</option>
-                    <option value="medium">Sedang</option>
-                    <option value="low">Rendah</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Penanggung Jawab</label>
-                  <select name="assignee_id" className="form-select" defaultValue={selectedTask.assignee_id || ''} disabled={isMember}>
-                    <option value="">Belum Ditugaskan</option>
-                    {currentProjectMembers.map(m => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Tenggat Waktu</label>
-                  <input
-                    name="deadline"
-                    type="date"
-                    className="form-input"
-                    defaultValue={selectedTask.deadline || ''}
-                    disabled={isMember}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Status</label>
-                  <select name="status" className="form-select" defaultValue={selectedTask.status}>
-                    <option value="todo">Belum Mulai</option>
-                    <option value="doing">Dikerjakan</option>
-                    <option value="review">Review</option>
-                    <option value="done">Selesai</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Deskripsi</label>
-                <textarea
-                  name="description"
-                  className="form-textarea"
-                  defaultValue={selectedTask.description || ''}
-                />
-              </div>
-
-              {/* Task Comments & Member Feedback Section */}
-              <div className="task-comments-section">
-                <div className="task-comments-header">
-                  <div className="task-comments-title">
-                    <MessageSquare size={15} color="#ea580c" />
-                    <span>Feedback & Diskusi Tugas</span>
-                    <span className="comments-count-pill">
-                      {(selectedTask.comments || []).length}
+            {/* SECTION 1: EDIT / DETAIL TUGAS */}
+            {taskModalTab === 'details' && (
+              <form onSubmit={handleUpdateTask} className="task-tab-form">
+                {isMember && (
+                  <div className="member-view-notice">
+                    <ShieldCheck size={16} />
+                    <span>
+                      Anda melihat tugas ini sebagai <strong>Member</strong>. Anda dapat memperbarui <strong>Status</strong> dan <strong>Deskripsi / Catatan Progres</strong>. Untuk detail prioritas, deadline, dan penugasan dikelola oleh <strong>Project Leader</strong>.
                     </span>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Nama Tugas *</label>
+                  <input
+                    name="title"
+                    className="form-input"
+                    required
+                    defaultValue={selectedTask.title}
+                    disabled={isMember}
+                  />
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Kategori</label>
+                    <input
+                      name="category"
+                      className="form-input"
+                      defaultValue={selectedTask.category || 'Frontend'}
+                      disabled={isMember}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Slot Waktu</label>
+                    <select name="time_slot" className="form-select" defaultValue={selectedTask.time_slot || '11.00'} disabled={isMember}>
+                      {timelineHours.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
-                <div className="task-comments-list">
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Prioritas</label>
+                    <select name="priority" className="form-select" defaultValue={selectedTask.priority} disabled={isMember}>
+                      <option value="high">Tinggi</option>
+                      <option value="medium">Sedang</option>
+                      <option value="low">Rendah</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Penanggung Jawab (Member)</label>
+                    <select name="assignee_id" className="form-select" defaultValue={selectedTask.assignee_id || ''} disabled={isMember}>
+                      <option value="">Belum Ditugaskan</option>
+                      {currentProjectMembers.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Tenggat Waktu</label>
+                    <input
+                      name="deadline"
+                      type="date"
+                      className="form-input"
+                      defaultValue={selectedTask.deadline || ''}
+                      disabled={isMember}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Status Pengerjaan *</label>
+                    <select name="status" className="form-select" defaultValue={selectedTask.status}>
+                      <option value="todo">Belum Mulai</option>
+                      <option value="doing">Dikerjakan</option>
+                      <option value="review">Review</option>
+                      <option value="done">Selesai</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Deskripsi / Catatan Pengerjaan</label>
+                  <textarea
+                    name="description"
+                    className="form-textarea"
+                    rows={3}
+                    placeholder="Tuliskan catatan progres atau detail tugas..."
+                    defaultValue={selectedTask.description || ''}
+                  />
+                </div>
+
+                <div className="modal-actions" style={{ marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => { setModal(''); setSelectedTask(null); }}
+                  >
+                    Batal
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    {isMember ? 'Simpan Progres Tugas' : 'Perbarui Tugas'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* SECTION 2: DEDICATED FEEDBACK CHAT ROOM */}
+            {taskModalTab === 'chat' && (
+              <div className="task-chat-view-container">
+                {/* Room Participants Bar */}
+                <div className="task-chat-participants-bar">
+                  <div className="chat-participant-pill leader">
+                    <span>👑 Project Leader: <strong>{currentProjectMembers.find(m => m.role === 'Project Leader')?.name || currentProject?.name || 'Leader'}</strong></span>
+                  </div>
+                  <div className="chat-participant-pill member">
+                    <span>👤 Penanggung Jawab: <strong>{selectedTask.assignee || currentProjectMembers.find(m => m.id === selectedTask.assignee_id)?.name || 'Belum Ditugaskan'}</strong></span>
+                  </div>
+                </div>
+
+                {/* Messages Box */}
+                <div className="task-chat-messages-box">
                   {(selectedTask.comments || []).length === 0 ? (
-                    <div className="task-comments-empty">
-                      Belum ada feedback untuk tugas ini. Anggota yang ditugaskan dapat menambahkan catatan atau progres di bawah.
+                    <div className="task-chat-empty-state">
+                      <div className="chat-empty-icon-wrap">
+                        <MessageSquare size={30} color="#ea580c" />
+                      </div>
+                      <h4>Ruang Diskusi & Feedback</h4>
+                      <p>Project Leader dan Member yang diberi tugas ini dapat saling chat, memberikan arahan, dan berdiskusi secara leluasa di sini.</p>
                     </div>
                   ) : (
-                    (selectedTask.comments || []).map((c) => (
-                      <div className="comment-item-card" key={c.id}>
-                        <div className="comment-header-row">
-                          <div className="comment-author-badge">
-                            <div className="comment-avatar-bubble">
+                    (selectedTask.comments || []).map((c) => {
+                      const isMine = (user && c.user_id && c.user_id === user.id) ||
+                                     (user && c.author && c.author.toLowerCase() === user.name.toLowerCase());
+                      const isLeaderSender = (c.role || '').toLowerCase().includes('leader');
+
+                      return (
+                        <div key={c.id || Math.random()} className={`chat-bubble-row ${isMine ? 'mine' : 'theirs'}`}>
+                          {!isMine && (
+                            <div className={`chat-avatar-circle ${isLeaderSender ? 'leader-av' : 'member-av'}`}>
                               {(c.author || 'A').slice(0, 1).toUpperCase()}
                             </div>
-                            <span className="comment-author-name">{c.author}</span>
-                            {c.role && <span className="comment-role-tag">{c.role}</span>}
+                          )}
+                          <div className="chat-bubble-content">
+                            <div className="chat-bubble-meta">
+                              <span className="chat-bubble-sender">{isMine ? 'Anda' : c.author}</span>
+                              <span className={`chat-role-badge ${isLeaderSender ? 'badge-leader' : 'badge-member'}`}>
+                                {c.role || (isLeaderSender ? 'Project Leader' : 'Member')}
+                              </span>
+                              <span className="chat-bubble-time">
+                                {c.time || (c.created_at ? new Date(c.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Baru saja')}
+                              </span>
+                            </div>
+                            <div className="chat-bubble-card">
+                              <p className="chat-bubble-text">{c.text}</p>
+                            </div>
                           </div>
-                          <span className="comment-timestamp">{c.time}</span>
+                          {isMine && (
+                            <div className={`chat-avatar-circle ${isLeaderSender ? 'leader-av' : 'member-av'}`}>
+                              {(c.author || user?.name || 'A').slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                        <p className="comment-text-body">{c.text}</p>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
-                <div className="comment-input-wrap">
+                {/* Quick Feedback Chips */}
+                <div className="task-chat-quick-chips">
+                  {isMember ? (
+                    <>
+                      <button type="button" onClick={() => setNewCommentText('Sedang saya kerjakan sekarang 🚀')}>🚀 Sedang dikerjakan</button>
+                      <button type="button" onClick={() => setNewCommentText('Ada kendala, butuh masukan Leader ⚠️')}>⚠️ Butuh masukan</button>
+                      <button type="button" onClick={() => setNewCommentText('Tugas sudah selesai, mohon dicek ya! ✅')}>✅ Siap direview</button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" onClick={() => setNewCommentText('Semangat pengerjaannya ya! 👍')}>👍 Semangat pengerjaannya</button>
+                      <button type="button" onClick={() => setNewCommentText('Bagaimana progresnya, ada kendala? 💡')}>💡 Tanya progres</button>
+                      <button type="button" onClick={() => setNewCommentText('Hasil pengerjaannya sudah bagus sekali! 🎉')}>🎉 Pengerjaan bagus</button>
+                    </>
+                  )}
+                </div>
+
+                {/* Chat Input Bar */}
+                <form onSubmit={handleAddComment} className="task-chat-input-bar">
                   <input
                     type="text"
-                    className="comment-text-input"
-                    placeholder="Tulis feedback atau update tugas..."
+                    className="task-chat-text-input"
+                    placeholder="Tulis feedback atau pesan diskusi..."
                     value={newCommentText}
                     onChange={(e) => setNewCommentText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddComment(e);
-                      }
-                    }}
+                    autoFocus
                   />
                   <button
-                    type="button"
-                    className="btn-send-comment"
+                    type="submit"
+                    className="btn-chat-send"
                     disabled={!newCommentText.trim()}
-                    onClick={handleAddComment}
                   >
+                    <Send size={15} />
                     <span>Kirim</span>
                   </button>
-                </div>
+                </form>
               </div>
-
-              <div className="modal-actions" style={{ marginTop: '20px' }}>
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => { setModal(''); setSelectedTask(null); }}
-                >
-                  Batal
-                </button>
-                <button type="submit" className="btn-primary">
-                  Perbarui Tugas
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}
@@ -3204,13 +3512,11 @@ export default function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Peran / Tanggung Jawab *</label>
-                <input
-                  name="role"
-                  className="form-input"
-                  required
-                  placeholder="Contoh: Frontend Developer, UI Designer, QA Tester"
-                />
+                <label className="form-label">Role Teman Kelompok *</label>
+                <select name="role" className="form-select" defaultValue="Member" required>
+                  <option value="Member">Member</option>
+                  <option value="Project Leader">Project Leader</option>
+                </select>
               </div>
 
               <div className="form-group">
@@ -3247,6 +3553,101 @@ export default function App() {
                 </button>
                 <button type="submit" className="btn-primary">
                   Tambahkan ke Kelompok
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Team Member */}
+      {modal === 'edit_member' && selectedMember && (
+        <div className="modal-overlay" onClick={() => { setModal(''); setSelectedMember(null); }}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">✏️ Edit Teman Kelompok</h3>
+              <button className="modal-close-btn" onClick={() => { setModal(''); setSelectedMember(null); }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: '#f8fafc', borderRadius: '10px', padding: '12px 14px', marginBottom: '18px' }}>
+              <div
+                className="member-round-avatar"
+                style={{ background: selectedMember.bg || '#6366f1', width: '44px', height: '44px', fontSize: '15px', flexShrink: 0 }}
+              >
+                {selectedMember.initial || selectedMember.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>{selectedMember.name}</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{selectedMember.role} · {selectedMember.email || 'Belum ada email'}</div>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditMember}>
+              <div className="form-group">
+                <label className="form-label">Nama Lengkap *</label>
+                <input
+                  name="name"
+                  className="form-input"
+                  required
+                  defaultValue={selectedMember.name}
+                  placeholder="Nama lengkap"
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Role</label>
+                <select name="role" className="form-select" defaultValue={selectedMember.role}>
+                  <option value="Member">Member</option>
+                  <option value="Project Leader">Project Leader</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Email (untuk notifikasi tugas)</label>
+                <input
+                  name="email"
+                  type="email"
+                  className="form-input"
+                  defaultValue={selectedMember.email || ''}
+                  placeholder="email@gmail.com"
+                />
+                <small style={{ color: '#64748b', fontSize: '11.5px', marginTop: '4px', display: 'block' }}>
+                  💡 Email Gmail akan dipakai untuk mengirim notifikasi tugas secara otomatis.
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Warna Avatar</label>
+                <div className="color-options-row">
+                  {colorOptions.map(c => {
+                    const isSelected = (selectedMember.bg || colorOptions[0].hex) === c.hex;
+                    return (
+                      <button
+                        type="button"
+                        key={c.hex}
+                        className={`color-dot-btn ${isSelected ? 'selected' : ''}`}
+                        style={{ background: c.hex }}
+                        onClick={() => setSelectedMember(prev => ({ ...prev, bg: c.hex }))}
+                        title={c.label}
+                      >
+                        {isSelected && <Check size={14} strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Hidden field untuk warna yang dipilih */}
+                <input type="hidden" name="color" value={selectedMember.bg || colorOptions[0].hex} />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => { setModal(''); setSelectedMember(null); }}>
+                  Batal
+                </button>
+                <button type="submit" className="btn-primary">
+                  Simpan Perubahan
                 </button>
               </div>
             </form>

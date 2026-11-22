@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 
@@ -17,8 +17,32 @@ class ProjectIn(BaseModel): name: str; description: str = ''; start_date: Option
 class ProjectOut(BaseModel): id: int; name: str; description: str; owner_id: int; start_date: Optional[date]; deadline: Optional[date]; model_config = ConfigDict(from_attributes=True)
 class MemberIn(BaseModel): name: str; email: str = ''; role: str = 'Member'
 class MemberOut(BaseModel): id: int; project_id: int; name: str; email: str; role: str; model_config = ConfigDict(from_attributes=True)
+class CommentIn(BaseModel):
+    text: str
+
+class CommentOut(BaseModel):
+    id: int
+    task_id: int
+    user_id: Optional[int] = None
+    author: str
+    role: str
+    text: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 class TaskIn(BaseModel): title: str; description: str = ''; assignee_id: Optional[int] = None; status: str = 'todo'; priority: str = 'medium'; deadline: Optional[date] = None; estimated_hours: float = 4
-class TaskOut(BaseModel): id: int; project_id: int; title: str; description: str; assignee_id: Optional[int]; status: str; priority: str; deadline: Optional[date]; estimated_hours: float; model_config = ConfigDict(from_attributes=True)
+class TaskOut(BaseModel):
+    id: int
+    project_id: int
+    title: str
+    description: str
+    assignee_id: Optional[int] = None
+    status: str
+    priority: str
+    deadline: Optional[date] = None
+    estimated_hours: float
+    comments: list[CommentOut] = []
+    model_config = ConfigDict(from_attributes=True)
 class ChatIn(BaseModel): project_id: int; message: str
 
 class IdeaGeneratorIn(BaseModel):

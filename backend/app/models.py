@@ -47,6 +47,17 @@ class Task(Base):
     estimated_hours: Mapped[float] = mapped_column(Float, default=4)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    comments: Mapped[list["TaskComment"]] = relationship("TaskComment", cascade="all, delete-orphan", order_by="TaskComment.created_at.asc()", lazy="selectin")
+
+class TaskComment(Base):
+    __tablename__ = 'task_comments'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey('tasks.id', ondelete='CASCADE'))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
+    author: Mapped[str] = mapped_column(String(120))
+    role: Mapped[str] = mapped_column(String(50), default='Member')
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 class ActivityLog(Base):
     __tablename__ = 'activity_logs'
