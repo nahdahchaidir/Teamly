@@ -39,9 +39,12 @@ import {
   RotateCcw,
   Bell,
   MoreHorizontal,
-  MessageSquare
+  MessageSquare,
+  Timer,
+  ShieldCheck,
+  BarChart3
 } from 'lucide-react';
-import api from './api';
+import api, { getApiErrorMessage } from './api';
 import { generateProjectIdea } from './ideaGenerator';
 import WelcomeScreen from './WelcomeScreen';
 import AuthPage from './AuthPage';
@@ -211,70 +214,83 @@ const colorOptions = [
   { label: 'Pink', hex: '#ec4899' }
 ];
 
-// Survey Options
+// Survey Options - Bahasa Simpel & Mudah Dipahami Orang Awam
 const domainSurveyOptions = [
   {
     id: 'kampus',
-    title: 'Kampus & Akademik',
-    desc: 'Antrean kantin, bimbingan dosen, inventaris lab praktikum',
+    title: 'Seputar Kampus & Kuliah',
+    desc: 'Antrean kantin, jadwal kuliah, peminjaman lab praktikum',
     icon: GraduationCap,
     colorClass: 'blue'
   },
   {
     id: 'bisnis',
-    title: 'Bisnis & UMKM',
-    desc: 'Kasir POS toko, etalase online, stok barang otomatis',
+    title: 'Bisnis & Toko Kecil',
+    desc: 'Kasir pembayaran, katalog jualan, pencatatan stok barang',
     icon: Store,
     colorClass: 'amber'
   },
   {
     id: 'lingkungan',
-    title: 'Lingkungan & Sosial',
-    desc: 'Bank sampah daur ulang, food waste, donasi makanan',
+    title: 'Sosial & Warga',
+    desc: 'Bank sampah daur ulang, donasi barang/makanan, info warga',
     icon: Leaf,
     colorClass: 'green'
   },
   {
     id: 'lifestyle',
-    title: 'Kesehatan & Lifestyle',
-    desc: 'Workout tracker, resep hemat anak kos, habits harian',
+    title: 'Hobi & Gaya Hidup',
+    desc: 'Latihan olahraga, resep hemat anak kos, jadwal harian',
     icon: Activity,
     colorClass: 'violet'
   },
   {
     id: 'organisasi',
-    title: 'Organisasi Mahasiswa',
-    desc: 'Transparansi kas iuran, tiket event kampus, e-voting',
+    title: 'Organisasi & Komunitas',
+    desc: 'Iuran kas kelompok, voting pemilihan ketua, pendaftaran acara',
     icon: HeartHandshake,
     colorClass: 'coral'
   },
   {
     id: 'produktivitas',
-    title: 'Produktivitas Belajar',
-    desc: 'Study tracker kelompok, pomodoro bareng, flashcards',
+    title: 'Belajar & Produktivitas',
+    desc: 'Jadwal belajar kelompok, pengingat tugas, target harian',
     icon: Clock,
     colorClass: 'purple'
   }
 ];
 
 const platformSurveyOptions = [
-  { id: 'Web App', label: 'Web Application', sub: 'React / Next.js & REST API', icon: Globe },
-  { id: 'Mobile App', label: 'Mobile Application', sub: 'Flutter / Android / iOS', icon: Smartphone },
-  { id: 'Sistem Informasi', label: 'Sistem Informasi', sub: 'Database Relasional & CRUD', icon: Database },
-  { id: 'AI & Smart System', label: 'AI & Smart System', sub: 'Machine Learning & Otomasi', icon: Cpu }
+  { id: 'Web App', label: 'Website di Browser', sub: 'Mudah dibuka di HP dan laptop tanpa download', icon: Globe },
+  { id: 'Mobile App', label: 'Aplikasi HP', sub: 'Aplikasi yang bisa dipasang di HP Android / iOS', icon: Smartphone },
+  { id: 'Sistem Informasi', label: 'Kasir & Pengolah Data', sub: 'Fokus formulir input data dan tabel daftar rapi', icon: Database },
+  { id: 'AI & Smart System', label: 'Aplikasi Cerdas', sub: 'Dilengkapi rekomendasi otomatis pintar', icon: Cpu }
 ];
 
 const teamSurveyOptions = [
-  { id: 1, label: 'Solo (1 Orang)', sub: 'Tugas Individu' },
-  { id: 2, label: 'Duet (2 Orang)', sub: 'Frontend & Backend' },
-  { id: 3, label: 'Trio (3 Orang)', sub: 'UI/UX, Frontend, Backend' },
-  { id: 4, label: 'Squad (4-5 Orang)', sub: 'Tim Lengkap + QA & Docs' }
+  { id: 1, label: 'Sendiri (1 Orang)', sub: 'Tugas perorangan mandiri' },
+  { id: 2, label: 'Berdua (2 Orang)', sub: 'Bagi dua: tampilan & sistem data' },
+  { id: 3, label: 'Bertiga (3 Orang)', sub: 'Tampilan, logika, dan laporan' },
+  { id: 4, label: 'Tim Rame-rame (4-5 Orang)', sub: 'Tim lengkap ada penguji & penyusun dokumen' }
+];
+
+const durationSurveyOptions = [
+  { id: 'quick', label: 'Cepat (< 2 Minggu)', sub: 'Fokus fitur inti yang simpel dan pasti cepat beres' },
+  { id: 'medium', label: 'Standar (~ 1 Bulan)', sub: 'Waktu cukup untuk merapikan tampilan dan laporan' },
+  { id: 'long', label: 'Panjang (> 1 Bulan)', sub: 'Leluasa membuat fitur lengkap untuk portofolio' }
 ];
 
 const difficultySurveyOptions = [
-  { id: 'easy', label: 'Praktis (MVP Cepat Jadi)', sub: 'Fokus fitur inti selesai tepat waktu' },
-  { id: 'standard', label: 'Standar Nilai A', sub: 'Lengkap Auth, CRUD & Dashboard' },
-  { id: 'ambitious', label: 'Ambisius & Portofolio', sub: 'Fitur cerdas & desain interaktif' }
+  { id: 'easy', label: 'Mudah & Ramah Pemula', sub: 'Alur simpel dan kode tidak rumit dipahami' },
+  { id: 'standard', label: 'Standar Tugas Kuliah', sub: 'Pas untuk target nilai bagus dosen' },
+  { id: 'ambitious', label: 'Menantang & Keren', sub: 'Banyak fitur seru untuk portofolio' }
+];
+
+const featureSurveyOptions = [
+  { id: 'crud', label: 'Pencatatan & Riwayat Data', sub: 'Bisa input, edit, cari, dan hapus data dengan rapi', icon: Database },
+  { id: 'auth', label: 'Login Akun & Akses Pengguna', sub: 'Bisa bedakan akun Admin dan Anggota', icon: ShieldCheck },
+  { id: 'notif', label: 'Pengingat & Notifikasi', sub: 'Pengingat otomatis batas waktu atau perubahan tugas', icon: Bell },
+  { id: 'report', label: 'Ringkasan & Laporan Visual', sub: 'Grafik visual dan rangkuman data otomatis', icon: BarChart3 }
 ];
 
 const timelineHours = ['07.00', '08.00', '09.00', '10.00', '11.00', '12.00', '13.00', '14.00', '15.00', '16.00', '17.00', '18.00', '19.00'];
@@ -486,51 +502,56 @@ export default function App() {
   const [currentView, setCurrentView] = useState('welcome'); // 'welcome' | 'workspace' | 'auth'
   const [authInitialMode, setAuthInitialMode] = useState('login');
 
-  // Initialize demo data with localStorage persistence
+  useEffect(() => {
+    localStorage.removeItem('tp_registered_users');
+  }, []);
+
+  // Initialize data: selalu kosong, user buat sendiri
   const [projects, setProjects] = useState(() => {
-    if (!token) {
-      const saved = localStorage.getItem('tp_demo_projects');
+    if (token) {
+      const saved = localStorage.getItem('tp_saved_projects');
       if (saved) {
         try { return JSON.parse(saved); } catch {}
       }
-      return defaultDemoProjects;
+      return []; // Akun baru: kosong
     }
-    return [];
+    return []; // Guest mode: kosong
   });
 
   const [activeProjectId, setActiveProjectId] = useState(() => {
-    if (!token) {
-      const savedId = localStorage.getItem('tp_demo_active_pid');
+    if (token) {
+      const savedId = localStorage.getItem('tp_saved_active_pid');
       if (savedId) return Number(savedId);
-      return defaultDemoProjects[0]?.id || 1;
+      return null;
     }
     return null;
   });
 
   const [allTasks, setAllTasks] = useState(() => {
-    if (!token) {
-      const saved = localStorage.getItem('tp_demo_tasks');
+    if (token) {
+      const saved = localStorage.getItem('tp_saved_tasks');
       if (saved) {
         try { return JSON.parse(saved); } catch {}
       }
-      return defaultDemoTasks;
+      return []; // Kosong
     }
     return [];
   });
 
   const [allMembers, setAllMembers] = useState(() => {
-    if (!token) {
-      const saved = localStorage.getItem('tp_demo_members');
+    if (token) {
+      const saved = localStorage.getItem('tp_saved_members');
       if (saved) {
         try { return JSON.parse(saved); } catch {}
       }
-      return defaultDemoMembers;
+      return []; // Kosong
     }
     return [];
   });
 
   // Current active project
   const currentProject = useMemo(() => {
+    if (!projects || projects.length === 0) return null;
     return projects.find(p => p.id === activeProjectId) || projects[0] || null;
   }, [projects, activeProjectId]);
 
@@ -546,22 +567,52 @@ export default function App() {
     return allMembers.filter(m => m.project_id === currentProject.id);
   }, [allMembers, currentProject]);
 
-  // Navigation: 'dashboard' | 'generator' | 'tasks' | 'team' | 'ai'
+  // Navigation: 'dashboard' | 'generator' | 'tasks' | 'team'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [taskView, setTaskView] = useState('board'); // 'board' | 'list'
 
-  // Survey Step State: 1 (Bidang), 2 (Platform), 3 (Anggota), 4 (Kesulitan), 5 (Results)
+  // Survey Step State: 1 to 6 (Questions), 7 (Results)
   const [surveyStep, setSurveyStep] = useState(1);
   const [selectedDomain, setSelectedDomain] = useState('kampus');
   const [selectedPlatform, setSelectedPlatform] = useState('Web App');
   const [selectedTeamSize, setSelectedTeamSize] = useState(3);
+  const [selectedDuration, setSelectedDuration] = useState('medium');
   const [selectedDifficulty, setSelectedDifficulty] = useState('standard');
+  const [selectedKeyFeature, setSelectedKeyFeature] = useState('crud');
   const [generatedIdeas, setGeneratedIdeas] = useState(null);
   const [isAnalyzingIdeas, setIsAnalyzingIdeas] = useState(false);
 
   // Guest & Auth status
   const isGuest = !token || !user;
   const [authModalPrompt, setAuthModalPrompt] = useState('');
+
+  // ===== ROLE DETECTION =====
+  // userRole: 'lead' (pemilik project) | 'member' (anggota) | 'guest'
+  const userRole = useMemo(() => {
+    if (isGuest) return 'guest';
+    if (!currentProject) return 'lead';
+    // Pemilik project
+    if (currentProject.owner_email && currentProject.owner_email === user?.email) return 'lead';
+    if (currentProject.owner_id && currentProject.owner_id === user?.id) return 'lead';
+    // Anggota project (email cocok)
+    const memberMatch = currentProjectMembers.find(m => m.email && m.email.toLowerCase() === user?.email?.toLowerCase());
+    if (memberMatch) return 'member';
+    return 'lead'; // fallback: anggap lead
+  }, [isGuest, user, currentProject, currentProjectMembers]);
+
+  const isLead = userRole === 'lead';
+  const isMember = userRole === 'member';
+
+  // Tugas yang terlihat oleh user saat ini
+  const visibleTasks = useMemo(() => {
+    if (!isMember || !user) return currentProjectTasks;
+    // Anggota hanya lihat tugas yang di-assign ke mereka
+    return currentProjectTasks.filter(t =>
+      (t.assignee && t.assignee.toLowerCase() === user.name?.toLowerCase()) ||
+      (t.assignee_id && currentProjectMembers.find(m => m.email?.toLowerCase() === user.email?.toLowerCase())?.id === t.assignee_id)
+    );
+  }, [isMember, user, currentProjectTasks, currentProjectMembers]);
+  const [deleteProjectConfirm, setDeleteProjectConfirm] = useState(null); // stores project to delete
 
   // Filters, Search & Dropdowns
   const [searchQuery, setSearchQuery] = useState('');
@@ -613,14 +664,10 @@ export default function App() {
   const [newCommentText, setNewCommentText] = useState('');
   const [selectedColor, setSelectedColor] = useState(colorOptions[0].hex);
   const [authMode, setAuthMode] = useState('login');
+  const [pendingCredentials, setPendingCredentials] = useState(null);
   const [projectDropdown, setProjectDropdown] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState('');
-
-  // AI Chat State
-  const [chat, setChat] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const [aiBusy, setAiBusy] = useState(false);
 
   const notify = (msg) => {
     setToast(msg);
@@ -678,15 +725,55 @@ export default function App() {
     notify('Semua notifikasi ditandai telah dibaca');
   };
 
-  // Persist demo state
+  // Persist state to localStorage whenever it changes
   useEffect(() => {
-    if (demo) {
-      localStorage.setItem('tp_demo_projects', JSON.stringify(projects));
-      localStorage.setItem('tp_demo_tasks', JSON.stringify(allTasks));
-      localStorage.setItem('tp_demo_members', JSON.stringify(allMembers));
-      if (activeProjectId) localStorage.setItem('tp_demo_active_pid', String(activeProjectId));
+    if (token) {
+      // Logged-in user: always save to localStorage so refresh keeps data
+      try {
+        localStorage.setItem('tp_saved_projects', JSON.stringify(projects));
+        localStorage.setItem('tp_saved_tasks', JSON.stringify(allTasks));
+        localStorage.setItem('tp_saved_members', JSON.stringify(allMembers));
+        if (activeProjectId) {
+          localStorage.setItem('tp_saved_active_pid', String(activeProjectId));
+        } else {
+          localStorage.removeItem('tp_saved_active_pid');
+        }
+      } catch {}
+
+      // ===== Sync ke tp_shared_data agar anggota dapat data terbaru =====
+      // Hanya lead yang perlu update shared store (anggota read-only dari shared)
+      try {
+        const sharedRaw = localStorage.getItem('tp_shared_data');
+        if (sharedRaw) {
+          const sharedData = JSON.parse(sharedRaw);
+          // Update tasks project yang ada di shared data
+          projects.forEach(p => {
+            const pTasks = allTasks.filter(t => t.project_id === p.id);
+            const pMembers = allMembers.filter(m => m.project_id === p.id);
+            // Cek apakah project ini ada di shared data
+            const isShared = sharedData.projects.some(sp => sp.id === p.id);
+            if (isShared) {
+              // Update tasks
+              const otherTasks = sharedData.tasks.filter(t => t.project_id !== p.id);
+              sharedData.tasks = [...otherTasks, ...pTasks];
+              // Update members
+              const otherMembers = sharedData.members.filter(m => m.project_id !== p.id);
+              sharedData.members = [...otherMembers, ...pMembers];
+            }
+          });
+          localStorage.setItem('tp_shared_data', JSON.stringify(sharedData));
+        }
+      } catch {}
+    } else if (demo) {
+      // Guest/demo: save to separate demo keys
+      try {
+        localStorage.setItem('tp_demo_projects', JSON.stringify(projects));
+        localStorage.setItem('tp_demo_tasks', JSON.stringify(allTasks));
+        localStorage.setItem('tp_demo_members', JSON.stringify(allMembers));
+        if (activeProjectId) localStorage.setItem('tp_demo_active_pid', String(activeProjectId));
+      } catch {}
     }
-  }, [demo, projects, allTasks, allMembers, activeProjectId]);
+  }, [demo, token, projects, allTasks, allMembers, activeProjectId]);
 
   // Backend sync
   async function loadBackendProjects() {
@@ -724,10 +811,26 @@ export default function App() {
   useEffect(() => {
     if (token) {
       setDemo(false);
-      api.get('/auth/me').then(r => {
-        setUser(r.data);
-        loadBackendProjects();
-      }).catch(logout);
+      // Do NOT load demo data – keep whatever is in state (empty for new users)
+
+      if (token.split('.').length !== 3) {
+        logout();
+        return;
+      }
+
+      // Backend JWT token check
+      api.get('/auth/me')
+        .then(r => {
+          setUser(r.data);
+          loadBackendProjects();
+        })
+        .catch(err => {
+          if (err.response && [401, 403].includes(err.response.status)) {
+            logout();
+          } else {
+            notify('Tidak dapat memverifikasi sesi. Periksa koneksi backend.');
+          }
+        });
     }
   }, [token]);
 
@@ -743,36 +846,67 @@ export default function App() {
     setToken(null);
     setUser(null);
     setDemo(true);
-    setProjects(defaultDemoProjects);
-    setActiveProjectId(defaultDemoProjects[0].id);
-    setAllTasks(defaultDemoTasks);
-    setAllMembers(defaultDemoMembers);
+    setProjects([]);
+    setActiveProjectId(null);
+    setAllTasks([]);
+    setAllMembers([]);
     notify('Berhasil keluar');
   };
 
+  // ===== LOAD SHARED PROJECT untuk anggota yang baru login =====
+  const loadSharedProjectForMember = (loggedInEmail) => {
+    try {
+      const sharedRaw = localStorage.getItem('tp_shared_data');
+      if (!sharedRaw) return false;
+      const sharedData = JSON.parse(sharedRaw);
+      // Cari project di mana email ini terdaftar sebagai anggota
+      const memberRecord = (sharedData.members || []).find(
+        m => m.email && m.email.toLowerCase() === loggedInEmail.toLowerCase()
+      );
+      if (!memberRecord) return false;
+      const sharedProject = (sharedData.projects || []).find(p => p.id === memberRecord.project_id);
+      if (!sharedProject) return false;
+      // Ambil semua tasks project itu dari shared data
+      const sharedTasks = (sharedData.tasks || []).filter(t => t.project_id === sharedProject.id);
+      // Ambil semua members project itu
+      const sharedMembers = (sharedData.members || []).filter(m => m.project_id === sharedProject.id);
+      // Set ke state — anggota hanya melihat project yang mereka ikuti
+      setProjects([sharedProject]);
+      setActiveProjectId(sharedProject.id);
+      setAllTasks(sharedTasks);
+      setAllMembers(sharedMembers);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // Statistics for CURRENT PROJECT ONLY
+  // Anggota: statistik hanya dari tugas mereka
   const stats = useMemo(() => {
+    const tasksForStats = isMember ? visibleTasks : currentProjectTasks;
     const counts = { todo: 0, doing: 0, review: 0, done: 0 };
     let highPriorityCount = 0;
     const today = new Date().toISOString().split('T')[0];
     let overdueCount = 0;
 
-    currentProjectTasks.forEach(t => {
+    tasksForStats.forEach(t => {
       counts[t.status] = (counts[t.status] || 0) + 1;
       if (t.priority === 'high' && t.status !== 'done') highPriorityCount++;
       if (t.deadline && t.deadline < today && t.status !== 'done') overdueCount++;
     });
 
-    const total = currentProjectTasks.length;
+    const total = tasksForStats.length;
     const progress = total ? Math.round((counts.done / total) * 100) : 0;
     const activeTasks = counts.doing + counts.review;
 
     return { counts, total, progress, highPriorityCount, overdueCount, activeTasks };
-  }, [currentProjectTasks]);
+  }, [currentProjectTasks, visibleTasks, isMember]);
 
-  // Filtered Tasks for CURRENT PROJECT
+  // Filtered Tasks for CURRENT PROJECT (anggota hanya lihat tugasnya)
   const filteredTasks = useMemo(() => {
-    return currentProjectTasks.filter(t => {
+    const baseTasks = isMember ? visibleTasks : currentProjectTasks;
+    return baseTasks.filter(t => {
       const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (t.assignee && t.assignee.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (t.category && t.category.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -780,23 +914,25 @@ export default function App() {
       const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter;
       return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [currentProjectTasks, searchQuery, statusFilter, priorityFilter]);
+  }, [currentProjectTasks, visibleTasks, isMember, searchQuery, statusFilter, priorityFilter]);
 
   // Instant live search matches
   const searchMatches = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase().trim();
-    return currentProjectTasks.filter(t =>
+    const baseTasks = isMember ? visibleTasks : currentProjectTasks;
+    return baseTasks.filter(t =>
       t.title.toLowerCase().includes(q) ||
       (t.description && t.description.toLowerCase().includes(q)) ||
       (t.assignee && t.assignee.toLowerCase().includes(q)) ||
       (t.category && t.category.toLowerCase().includes(q))
     );
-  }, [currentProjectTasks, searchQuery]);
+  }, [currentProjectTasks, visibleTasks, isMember, searchQuery]);
 
   // Upcoming Tasks
   const upcomingTasks = useMemo(() => {
-    return currentProjectTasks
+    const baseTasks = isMember ? visibleTasks : currentProjectTasks;
+    return baseTasks
       .filter(t => t.status !== 'done' && t.deadline)
       .sort((a, b) => (a.deadline > b.deadline ? 1 : -1))
       .slice(0, 4);
@@ -816,8 +952,8 @@ export default function App() {
       });
       if (result && result.ideas) {
         setGeneratedIdeas(result.ideas);
-        setSurveyStep(5); // Jump to results step
-        notify('🎯 AI berhasil merumuskan 3 rekomendasi project!');
+        setSurveyStep(7); // Jump to results step
+        notify('🎯 Berhasil menemukan 3 rekomendasi ide project!');
       }
     } catch {
       notify('Gagal menganalisis ide project');
@@ -916,50 +1052,35 @@ export default function App() {
 
   const changeTaskStatus = async (task, newStatus) => {
     if (!requireLogin(null, 'mengubah status tugas')) return;
-    if (demo) {
-      setAllTasks(allTasks.map(t => (t.id === task.id ? { ...t, status: newStatus } : t)));
-    } else {
+    // Always update locally first
+    setAllTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    sendChangeNotification(task, `Status tugas diubah menjadi "${statusMeta[newStatus]?.label || newStatus}"`, task.assignee);
+    // Try backend non-blocking (real JWT only)
+    if (!demo && token) {
       try {
         const r = await api.patch(`/tasks/${task.id}`, { status: newStatus });
-        setAllTasks(allTasks.map(t => (t.id === task.id ? r.data : t)));
-      } catch {
-        notify('Gagal memperbarui status');
-        return;
-      }
+        setAllTasks(prev => prev.map(t => t.id === task.id ? { ...r.data, comments: t.comments || [] } : t));
+      } catch {}
     }
-    sendChangeNotification(
-      task,
-      `Status tugas diubah menjadi "${statusMeta[newStatus]?.label || newStatus}"`,
-      task.assignee
-    );
   };
 
   const deleteTask = async (task) => {
     if (!requireLogin(null, 'menghapus tugas')) return;
     if (!confirm(`Hapus tugas "${task.title}"?`)) return;
-    if (demo) {
-      setAllTasks(allTasks.filter(t => t.id !== task.id));
-      notify('Tugas dihapus');
-    } else {
-      try {
-        await api.delete(`/tasks/${task.id}`);
-        setAllTasks(allTasks.filter(t => t.id !== task.id));
-        notify('Tugas dihapus');
-      } catch {
-        notify('Gagal menghapus tugas');
-        return;
-      }
-    }
+    // Always delete locally first
+    setAllTasks(prev => prev.filter(t => t.id !== task.id));
     sendChangeNotification(task, 'Tugas dihapus dari sprint project', task.assignee);
+    notify('Tugas dihapus');
+    // Try backend non-blocking (real JWT only)
+    if (!demo && token) {
+      try { await api.delete(`/tasks/${task.id}`); } catch {}
+    }
   };
 
   const handleAddTask = async (e) => {
     e.preventDefault();
     if (!requireLogin(null, 'menambah tugas baru')) return;
-    if (!currentProject) {
-      notify('Pilih project terlebih dahulu');
-      return;
-    }
+    if (!currentProject) { notify('Pilih project terlebih dahulu'); return; }
     const f = new FormData(e.currentTarget);
     const assigneeId = f.get('assignee_id') ? Number(f.get('assignee_id')) : null;
     const assignedMember = currentProjectMembers.find(m => m.id === assigneeId);
@@ -977,26 +1098,25 @@ export default function App() {
       time_slot: f.get('time_slot') || '11.00'
     };
 
-    if (demo) {
-      const newTask = {
-        id: 't' + Date.now(),
-        ...payload,
-        assignee: assignedMember ? assignedMember.name : 'Unassigned'
-      };
-      setAllTasks([newTask, ...allTasks]);
-      notify('Tugas berhasil ditambahkan');
-    } else {
+    // Always save locally first
+    const newTask = {
+      id: 't' + Date.now(),
+      ...payload,
+      assignee: assignedMember ? assignedMember.name : 'Unassigned',
+      comments: []
+    };
+    setAllTasks(prev => [newTask, ...prev]);
+    sendChangeNotification(payload.title, 'Tugas baru ditugaskan ke Anda', assignedMember || assigneeId);
+    notify('Tugas berhasil ditambahkan');
+    setModal('');
+
+    // Try backend non-blocking (real JWT only)
+    if (!demo && token) {
       try {
         const r = await api.post(`/projects/${currentProject.id}/tasks`, payload);
-        setAllTasks([r.data, ...allTasks]);
-        notify('Tugas berhasil ditambahkan');
-      } catch {
-        notify('Gagal menambahkan tugas');
-        return;
-      }
+        setAllTasks(prev => prev.map(t => t.id === newTask.id ? { ...r.data, assignee: newTask.assignee, comments: [] } : t));
+      } catch {}
     }
-    sendChangeNotification(payload.title, 'Tugas baru ditugaskan ke Anda', assignedMember || assigneeId);
-    setModal('');
   };
 
   const handleUpdateTask = async (e) => {
@@ -1007,35 +1127,39 @@ export default function App() {
     const assigneeId = f.get('assignee_id') ? Number(f.get('assignee_id')) : null;
     const assignedMember = currentProjectMembers.find(m => m.id === assigneeId);
 
-    const payload = {
-      title: f.get('title'),
-      description: f.get('description') || '',
-      status: f.get('status'),
-      priority: f.get('priority'),
-      deadline: f.get('deadline') || null,
-      estimated_hours: Number(f.get('hours') || 4),
-      assignee_id: assigneeId,
-      assignee: assignedMember ? assignedMember.name : 'Unassigned',
-      category: f.get('category') || selectedTask.category || 'Task',
-      time_slot: f.get('time_slot') || selectedTask.time_slot || '11.00'
-    };
+    const payload = isMember
+      ? {
+          description: f.get('description') || '',
+          status: f.get('status')
+        }
+      : {
+          title: f.get('title'),
+          description: f.get('description') || '',
+          status: f.get('status'),
+          priority: f.get('priority'),
+          deadline: f.get('deadline') || null,
+          estimated_hours: Number(f.get('hours') || 4),
+          assignee_id: assigneeId,
+          assignee: assignedMember ? assignedMember.name : 'Unassigned',
+          category: f.get('category') || selectedTask.category || 'Task',
+          time_slot: f.get('time_slot') || selectedTask.time_slot || '11.00'
+        };
 
-    if (demo) {
-      setAllTasks(allTasks.map(t => (t.id === selectedTask.id ? { ...t, ...payload, comments: selectedTask.comments || t.comments || [] } : t)));
-      notify('Tugas berhasil diperbarui');
-    } else {
-      try {
-        const r = await api.patch(`/tasks/${selectedTask.id}`, payload);
-        setAllTasks(allTasks.map(t => (t.id === selectedTask.id ? { ...r.data, assignee: payload.assignee, comments: selectedTask.comments || t.comments || [] } : t)));
-        notify('Tugas berhasil diperbarui');
-      } catch {
-        notify('Gagal memperbarui tugas');
-        return;
-      }
-    }
+    // Always update locally first
+    const updatedTask = { ...selectedTask, ...payload, comments: selectedTask.comments || [] };
+    setAllTasks(prev => prev.map(t => t.id === selectedTask.id ? updatedTask : t));
     sendChangeNotification(payload.title, `Detail tugas diperbarui (Status: ${statusMeta[payload.status]?.label || payload.status})`, assignedMember || selectedTask.assignee);
+    notify('Tugas berhasil diperbarui');
     setModal('');
     setSelectedTask(null);
+
+    // Try backend non-blocking (real JWT only)
+    if (!demo && token) {
+      try {
+        const r = await api.patch(`/tasks/${selectedTask.id}`, payload);
+        setAllTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...r.data, assignee: payload.assignee, comments: updatedTask.comments } : t));
+      } catch {}
+    }
   };
 
   const handleAddComment = (e) => {
@@ -1043,14 +1167,24 @@ export default function App() {
     if (!requireLogin(null, 'memberikan feedback atau komentar tugas')) return;
     if (!newCommentText.trim() || !selectedTask) return;
 
-    const commenterName = user?.name || (selectedTask.assignee && selectedTask.assignee !== 'Unassigned' ? selectedTask.assignee : 'Anggota Tim');
-    const memberObj = currentProjectMembers.find(m => m.name === commenterName);
-    const commenterRole = memberObj?.role || (selectedTask.assignee ? 'Penanggung Jawab' : 'Anggota');
+    // Gunakan nama user yang sedang login
+    const commenterName = user?.name || 'Anggota Tim';
+    // Role badge: Project Lead atau role spesifik anggota
+    let commenterRole;
+    if (isLead) {
+      commenterRole = 'Project Lead';
+    } else {
+      const memberObj = currentProjectMembers.find(
+        m => m.email?.toLowerCase() === user?.email?.toLowerCase()
+      );
+      commenterRole = memberObj?.role || 'Anggota';
+    }
 
     const newComment = {
       id: 'cmt_' + Date.now(),
       author: commenterName,
       role: commenterRole,
+      isLead: isLead,
       text: newCommentText.trim(),
       time: 'Baru saja'
     };
@@ -1083,68 +1217,111 @@ export default function App() {
       theme: 'blue_campus'
     };
 
-    if (demo) {
-      const newP = { id: Date.now(), ...payload };
-      const firstMember = {
-        id: Date.now() + 1,
-        project_id: newP.id,
-        name: user?.name || 'Ketua Kelompok',
-        role: 'Project Lead',
-        email: user?.email || 'ketua@kampus.ac.id',
-        initial: (user?.name || 'KT').slice(0, 2).toUpperCase(),
-        bg: '#6366f1'
-      };
-      setProjects([newP, ...projects]);
-      setAllMembers([firstMember, ...allMembers]);
-      setActiveProjectId(newP.id);
-      setActiveTab('dashboard');
-      notify('Project baru dibuat');
-    } else {
+    // Always create locally first (works offline & for local accounts)
+    const newP = { id: Date.now(), ...payload, owner_email: user?.email || '', owner_id: user?.id || null };
+    const firstMember = {
+      id: Date.now() + 1,
+      project_id: newP.id,
+      name: user?.name || 'Ketua Kelompok',
+      role: 'Project Lead',
+      email: user?.email || 'ketua@kampus.ac.id',
+      initial: (user?.name || 'KT').slice(0, 2).toUpperCase(),
+      bg: '#6366f1'
+    };
+    const updatedProjects = [newP, ...projects];
+    const updatedMembers = [firstMember, ...allMembers];
+    setProjects(updatedProjects);
+    setAllMembers(updatedMembers);
+    setActiveProjectId(newP.id);
+    setActiveTab('dashboard');
+    // Persist to localStorage so it survives refresh
+    localStorage.setItem('tp_saved_projects', JSON.stringify(updatedProjects));
+    localStorage.setItem('tp_saved_members', JSON.stringify(updatedMembers));
+    localStorage.setItem('tp_saved_active_pid', String(newP.id));
+    notify('Project baru berhasil dibuat!');
+
+    // Also try to save to backend (non-blocking, for real JWT tokens)
+    if (!demo && token) {
       try {
         const r = await api.post('/projects', payload);
-        setProjects([r.data, ...projects]);
+        // Replace local project with backend one (has real id)
+        setProjects(prev => prev.map(p => p.id === newP.id ? r.data : p));
         setActiveProjectId(r.data.id);
-        setActiveTab('dashboard');
-        notify('Project baru berhasil dibuat');
+        const updatedMembersWithRealId = updatedMembers.map(m =>
+          m.project_id === newP.id ? { ...m, project_id: r.data.id } : m
+        );
+        setAllMembers(updatedMembersWithRealId);
+        localStorage.setItem('tp_saved_active_pid', String(r.data.id));
       } catch {
-        notify('Gagal membuat project');
+        // Backend save failed — local version still usable
       }
     }
+
     setModal('');
     setProjectDropdown(false);
   };
 
-  const handleDeleteProject = async (pToDelete, e) => {
+  const handleDeleteProject = (pToDelete, e) => {
     e.stopPropagation();
     if (!requireLogin(null, 'menghapus project')) return;
-    if (projects.length <= 1) {
-      notify('Minimal harus ada 1 project aktif');
-      return;
-    }
-    if (!confirm(`Hapus project "${pToDelete.name}" beserta seluruh tugasnya?`)) return;
+    // Open custom confirmation modal
+    setDeleteProjectConfirm(pToDelete);
+    setProjectDropdown(false);
+  };
 
-    if (demo) {
-      const nextProjects = projects.filter(p => p.id !== pToDelete.id);
-      setProjects(nextProjects);
-      setAllTasks(allTasks.filter(t => t.project_id !== pToDelete.id));
-      setAllMembers(allMembers.filter(m => m.project_id !== pToDelete.id));
-      if (activeProjectId === pToDelete.id) {
-        setActiveProjectId(nextProjects[0]?.id || null);
+  const confirmDeleteProject = async () => {
+    const pToDelete = deleteProjectConfirm;
+    setDeleteProjectConfirm(null);
+    if (!pToDelete) return;
+
+    // Helper: clean localStorage
+    const cleanLocalStorage = () => {
+      try {
+        const savedProj = localStorage.getItem('tp_saved_projects');
+        if (savedProj) {
+          const arr = JSON.parse(savedProj).filter(p => p.id !== pToDelete.id);
+          localStorage.setItem('tp_saved_projects', JSON.stringify(arr));
+        }
+        const savedTasks = localStorage.getItem('tp_saved_tasks');
+        if (savedTasks) {
+          const arr = JSON.parse(savedTasks).filter(t => t.project_id !== pToDelete.id);
+          localStorage.setItem('tp_saved_tasks', JSON.stringify(arr));
+        }
+        const savedMembers = localStorage.getItem('tp_saved_members');
+        if (savedMembers) {
+          const arr = JSON.parse(savedMembers).filter(m => m.project_id !== pToDelete.id);
+          localStorage.setItem('tp_saved_members', JSON.stringify(arr));
+        }
+        const activePid = localStorage.getItem('tp_saved_active_pid');
+        if (activePid && Number(activePid) === pToDelete.id) {
+          localStorage.removeItem('tp_saved_active_pid');
+        }
+      } catch {}
+    };
+
+    // Always update local state immediately
+    const nextProjects = projects.filter(p => p.id !== pToDelete.id);
+    setProjects(nextProjects);
+    setAllTasks(prev => prev.filter(t => t.project_id !== pToDelete.id));
+    setAllMembers(prev => prev.filter(m => m.project_id !== pToDelete.id));
+    if (activeProjectId === pToDelete.id) {
+      const nextId = nextProjects[0]?.id || null;
+      setActiveProjectId(nextId);
+      if (nextId) {
+        localStorage.setItem('tp_saved_active_pid', String(nextId));
+      } else {
+        localStorage.removeItem('tp_saved_active_pid');
       }
-      notify('Project dihapus');
-    } else {
+    }
+    cleanLocalStorage();
+    notify('Project berhasil dihapus');
+
+    // Try to also delete from backend (non-blocking)
+    if (!demo && token) {
       try {
         await api.delete(`/projects/${pToDelete.id}`);
-        const nextProjects = projects.filter(p => p.id !== pToDelete.id);
-        setProjects(nextProjects);
-        setAllTasks(allTasks.filter(t => t.project_id !== pToDelete.id));
-        setAllMembers(allMembers.filter(m => m.project_id !== pToDelete.id));
-        if (activeProjectId === pToDelete.id) {
-          setActiveProjectId(nextProjects[0]?.id || null);
-        }
-        notify('Project berhasil dihapus');
       } catch {
-        notify('Gagal menghapus project');
+        // Backend delete failed silently – state already cleaned
       }
     }
   };
@@ -1153,66 +1330,67 @@ export default function App() {
 
   const handleAddMember = async (e) => {
     e.preventDefault();
-    if (!requireLogin(null, 'menambah anggota tim')) return;
-    if (!currentProject) {
-      notify('Pilih project terlebih dahulu');
-      return;
-    }
+    if (!requireLogin(null, 'menambah anggota baru')) return;
+    if (!currentProject) { notify('Pilih project terlebih dahulu'); return; }
     const f = new FormData(e.currentTarget);
-    const name = f.get('name').trim();
-    const role = f.get('role').trim() || 'Anggota Tim';
-    const email = f.get('email').trim() || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@kampus.ac.id`;
-
-    const initials = name
-      .split(' ')
-      .map(w => w[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || 'TM';
-
-    const payload = { name, role, email };
-
-    if (demo) {
-      const newMember = {
-        id: Date.now(),
-        project_id: currentProject.id,
-        ...payload,
-        initial: initials,
-        bg: selectedColor
-      };
-      setAllMembers([...allMembers, newMember]);
-      sendChangeNotification(currentProject.name, 'Undangan bergabung ke project tugas kelompok', newMember);
-      notify(`Anggota "${name}" berhasil ditambahkan!`);
-    } else {
-      try {
-        const r = await api.post(`/projects/${currentProject.id}/members`, payload);
-        const newMember = { ...r.data, initial: initials, bg: selectedColor };
-        setAllMembers([...allMembers, newMember]);
-        sendChangeNotification(currentProject.name, 'Undangan bergabung ke project tugas kelompok', newMember);
-        notify(`Anggota "${name}" berhasil ditambahkan!`);
-      } catch {
-        notify('Gagal menambahkan anggota');
-        return;
-      }
-    }
+    const memberEmail = (f.get('email') || '').toString().trim().toLowerCase();
+    const newMember = {
+      id: Date.now(),
+      project_id: currentProject.id,
+      name: f.get('name'),
+      role: f.get('role'),
+      email: memberEmail,
+      initial: (f.get('name') || 'AN').slice(0, 2).toUpperCase(),
+      bg: selectedColor
+    };
+    setAllMembers(prev => [...prev, newMember]);
+    sendChangeNotification(newMember, `${newMember.name} ditambahkan ke kelompok sebagai ${newMember.role}`, newMember);
+    notify(`${newMember.name} berhasil ditambahkan ke kelompok!`);
     setModal('');
+    setSelectedColor(colorOptions[0].hex);
+
+    // ===== SHARED STORE: simpan project + member agar anggota bisa login dan lihat =====
+    // Ketika lead menambah anggota, simpan/update data project+member ke tp_shared_data
+    // supaya anggota bisa akses saat login dengan email yang sama
+    try {
+      const sharedRaw = localStorage.getItem('tp_shared_data');
+      const sharedData = sharedRaw ? JSON.parse(sharedRaw) : { projects: [], members: [], tasks: [] };
+      // Update atau tambah project
+      const pIdx = sharedData.projects.findIndex(p => p.id === currentProject.id);
+      const pData = { ...currentProject, owner_email: user?.email || '', owner_id: user?.id || null };
+      if (pIdx >= 0) sharedData.projects[pIdx] = pData;
+      else sharedData.projects.push(pData);
+      // Update atau tambah member baru
+      const mIdx = sharedData.members.findIndex(m => m.id === newMember.id);
+      if (mIdx < 0) sharedData.members.push(newMember);
+      // Simpan semua members project ini
+      const updatedMembersForProject = [...allMembers.filter(m => m.project_id === currentProject.id), newMember];
+      updatedMembersForProject.forEach(m => {
+        const idx = sharedData.members.findIndex(x => x.id === m.id);
+        if (idx >= 0) sharedData.members[idx] = m;
+        else sharedData.members.push(m);
+      });
+      localStorage.setItem('tp_shared_data', JSON.stringify(sharedData));
+    } catch {}
+
+    // Try backend non-blocking (real JWT only)
+    if (!demo && token) {
+      try {
+        const r = await api.post(`/projects/${currentProject.id}/members`, { name: newMember.name, role: newMember.role, email: newMember.email });
+        setAllMembers(prev => prev.map(m => m.id === newMember.id ? { ...r.data, initial: newMember.initial, bg: newMember.bg } : m));
+      } catch {}
+    }
   };
 
   const handleDeleteMember = async (memberToDelete) => {
     if (!requireLogin(null, 'menghapus anggota tim')) return;
     if (!confirm(`Hapus "${memberToDelete.name}" dari project ini?`)) return;
-
-    if (demo) {
-      setAllMembers(allMembers.filter(m => m.id !== memberToDelete.id));
-      notify('Anggota tim dihapus');
-    } else {
-      try {
-        await api.delete(`/projects/${currentProject.id}/members/${memberToDelete.id}`);
-        setAllMembers(allMembers.filter(m => m.id !== memberToDelete.id));
-        notify('Anggota tim dihapus');
-      } catch {
-        notify('Gagal menghapus anggota');
-      }
+    // Always delete locally first
+    setAllMembers(prev => prev.filter(m => m.id !== memberToDelete.id));
+    notify('Anggota tim dihapus');
+    // Try backend non-blocking (real JWT only)
+    if (!demo && token) {
+      try { await api.delete(`/projects/${currentProject.id}/members/${memberToDelete.id}`); } catch {}
     }
   };
 
@@ -1225,148 +1403,58 @@ export default function App() {
     const passVal = (f.get('password') || '').toString();
     const nameVal = (f.get('name') || '').toString().trim();
 
-    // 1. Admin shortcut check
-    if (authMode === 'login' && emailVal === 'admin@teamly.com' && passVal === 'admin123') {
-      try {
+    try {
+      if (authMode === 'verify') {
+        const r = await api.post('/auth/verify-email', {
+          email: pendingCredentials.email,
+          code: (f.get('code') || '').toString().trim()
+        });
+        localStorage.setItem('tp_token', r.data.access_token);
+        localStorage.setItem('tp_user', JSON.stringify(r.data.user));
+        setToken(r.data.access_token);
+        setUser(r.data.user);
+        setDemo(false);
+        setModal('');
+        setAuthModalPrompt('');
+        notify('Email terverifikasi. Berhasil masuk!');
+      } else if (authMode === 'login') {
         const r = await api.post('/auth/login', { email: emailVal, password: passVal });
         localStorage.setItem('tp_token', r.data.access_token);
         localStorage.setItem('tp_user', JSON.stringify(r.data.user));
         setToken(r.data.access_token);
         setUser(r.data.user);
-      } catch {
-        const adminUser = { id: 1, name: 'Admin Teamly', email: 'admin@teamly.com', role: 'admin' };
-        const adminToken = 'admin_token_' + Date.now();
-        localStorage.setItem('tp_token', adminToken);
-        localStorage.setItem('tp_user', JSON.stringify(adminUser));
-        setToken(adminToken);
-        setUser(adminUser);
-      }
-      setDemo(false);
-      setModal('');
-      setAuthModalPrompt('');
-      notify('Selamat datang, Admin Teamly! 👑');
-      return;
-    }
-
-    try {
-      if (authMode === 'login') {
-        try {
-          const r = await api.post('/auth/login', { email: emailVal, password: passVal });
-          localStorage.setItem('tp_token', r.data.access_token);
-          localStorage.setItem('tp_user', JSON.stringify(r.data.user));
-          setToken(r.data.access_token);
-          setUser(r.data.user);
-          setDemo(false);
-          setModal('');
-          setAuthModalPrompt('');
-          notify('Berhasil masuk ke akun!');
-          return;
-        } catch (apiErr) {
-          const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
-          const matched = localUsers.find(u => u.email === emailVal && u.password === passVal);
-          if (matched) {
-            const localUser = { id: matched.id, name: matched.name, email: matched.email };
-            const localToken = 'local_token_' + matched.id;
-            localStorage.setItem('tp_token', localToken);
-            localStorage.setItem('tp_user', JSON.stringify(localUser));
-            setToken(localToken);
-            setUser(localUser);
-            setDemo(false);
-            setModal('');
-            setAuthModalPrompt('');
-            notify(`Selamat datang kembali, ${localUser.name}!`);
-            return;
-          }
-          notify(apiErr.response?.data?.detail || 'Email atau password salah');
-          return;
-        }
+        setDemo(false);
+        setModal('');
+        setAuthModalPrompt('');
+        notify('Berhasil masuk ke akun!');
       } else {
-        // Mode REGISTER
         if (passVal.length < 8) {
           notify('Kata sandi minimal 8 karakter');
           return;
         }
-        try {
-          const r = await api.post('/auth/register', { name: nameVal, email: emailVal, password: passVal });
-          localStorage.setItem('tp_token', r.data.access_token);
-          localStorage.setItem('tp_user', JSON.stringify(r.data.user));
-          setToken(r.data.access_token);
-          setUser(r.data.user);
-          setDemo(false);
-          setModal('');
-          setAuthModalPrompt('');
-          notify(`Akun berhasil dibuat! Selamat datang, ${r.data.user.name}`);
-          return;
-        } catch (apiErr) {
-          if (apiErr.response?.data?.detail) {
-            notify(apiErr.response.data.detail);
-            return;
-          }
-          const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
-          if (localUsers.some(u => u.email === emailVal)) {
-            notify('Email sudah terdaftar. Silakan masuk.');
-            return;
-          }
-          const newUser = { id: Date.now(), name: nameVal, email: emailVal };
-          localUsers.push({ ...newUser, password: passVal });
-          localStorage.setItem('tp_registered_users', JSON.stringify(localUsers));
-          const localToken = 'local_token_' + newUser.id;
-          localStorage.setItem('tp_token', localToken);
-          localStorage.setItem('tp_user', JSON.stringify(newUser));
-          setToken(localToken);
-          setUser(newUser);
-          setDemo(false);
-          setModal('');
-          setAuthModalPrompt('');
-          notify(`Akun berhasil dibuat! Selamat datang, ${newUser.name}`);
-          return;
-        }
+        await api.post('/auth/register', { name: nameVal, email: emailVal, password: passVal });
+        setPendingCredentials({ email: emailVal, password: passVal });
+        setAuthMode('verify');
+        notify('Kode verifikasi dikirim. Masukkan kode dari email Anda.');
       }
-    } catch {
-      notify('Gagal memproses akun. Silakan coba lagi.');
+    } catch (apiErr) {
+      if (apiErr.response?.status === 403 && authMode === 'login') {
+        setPendingCredentials({ email: emailVal, password: passVal });
+        setAuthMode('verify');
+        notify('Email belum diverifikasi. Masukkan kode yang dikirim ke email Anda.');
+      } else {
+        notify(getApiErrorMessage(apiErr, 'Gagal memproses akun. Periksa koneksi backend.'));
+      }
     }
   };
 
-  // ================= AI CHAT =================
-
-  const sendAiChat = async (promptText) => {
-    if (!requireLogin(null, 'mengirim pesan ke asisten AI')) return;
-    const q = (promptText || chatInput).trim();
-    if (!q) return;
-
-    setChat(prev => [...prev, { role: 'user', text: q }]);
-    setChatInput('');
-    setAiBusy(true);
-
+  const handleResendVerification = async () => {
+    if (!pendingCredentials) return;
     try {
-      if (demo) {
-        setTimeout(() => {
-          let response = '';
-          const projectName = currentProject?.name || 'Project Anda';
-
-          if (currentProjectTasks.length === 0) {
-            response = `📌 **Project ${projectName}** belum memiliki tugas aktif.\n\nSaran langkah awal:\n1. Masukkan tugas sprint pertama via tombol **Tambah Tugas**.\n2. Atau buat konsep project baru via **Survey Ide AI**.`;
-          } else if (q.includes('prioritas') || q.includes('hari ini')) {
-            const highTask = currentProjectTasks.find(t => t.priority === 'high' && t.status !== 'done');
-            response = `🎯 **Prioritas Hari Ini untuk ${projectName}:**\n• Fokus utama: "${highTask ? highTask.title : 'Tuntaskan tugas in-progress'}"\n• Selesaikan ${stats.counts.doing} tugas yang sedang berjalan sebelum menambah pekerjaan baru.\n• Sinkronisasi dengan teman sekelompok untuk persiapan demo.`;
-          } else if (q.includes('terlambat') || q.includes('risiko')) {
-            response = `⚠️ **Analisis Risiko & Tenggat:**\n• Terdapat ${stats.overdueCount} tugas melewati deadline.\n• Segera sepakati revisi batas waktu atau bantu teman yang kesulitan.`;
-          } else if (q.includes('laporan') || q.includes('bab')) {
-            response = `📝 **Struktur Laporan Project Kuliah (${projectName}):**\n• **Bab 1:** Latar belakang masalah & tujuan sistem\n• **Bab 2:** Landasan teori & tech stack\n• **Bab 3:** Perancangan sistem (ERD, DFD/UML, Wireframe UI)\n• **Bab 4:** Implementasi kode & pengujian (testing)\n• **Bab 5:** Kesimpulan & saran pengembangan`;
-          } else {
-            response = `📊 **Ringkasan Project ${projectName}:**\n• Total: ${stats.total} tugas • Progres: ${stats.progress}% selesai.\n• In-Progress: ${stats.counts.doing} • Review: ${stats.counts.review} • Selesai: ${stats.counts.done}.\n• Anggota: ${currentProjectMembers.length} orang aktif.`;
-          }
-          setChat(prev => [...prev, { role: 'assistant', text: response }]);
-          setAiBusy(false);
-        }, 500);
-      } else {
-        const r = await api.post('/ai/chat', { project_id: currentProject.id, message: q });
-        setChat(prev => [...prev, { role: 'assistant', text: r.data.answer }]);
-        setAiBusy(false);
-      }
-    } catch {
-      setAiBusy(false);
-      notify('AI tidak dapat merespons saat ini');
+      const r = await api.post('/auth/verification/resend', pendingCredentials);
+      notify(r.data.message);
+    } catch (err) {
+      notify(getApiErrorMessage(err, 'Gagal mengirim ulang kode verifikasi.'));
     }
   };
 
@@ -1389,12 +1477,22 @@ export default function App() {
           setToken(newToken);
           setDemo(false);
           setAuthModalPrompt('');
+          setProjects([]);
+          setActiveProjectId(null);
+          setAllTasks([]);
+          setAllMembers([]);
           setCurrentView('workspace');
           notify('Berhasil masuk ke akun!');
         }}
         onGoToLanding={() => setCurrentView('workspace')}
         onEnterDemo={() => {
           setDemo(true);
+          setToken(null);
+          setUser(null);
+          setProjects([]);
+          setActiveProjectId(null);
+          setAllTasks([]);
+          setAllMembers([]);
           setCurrentView('workspace');
           notify('Masuk sebagai Guest');
         }}
@@ -1404,6 +1502,11 @@ export default function App() {
 
   return (
     <div className="teamly-shell">
+      {/* Sidebar backdrop for mobile */}
+      {mobileMenu && (
+        <div className="sidebar-backdrop" onClick={() => setMobileMenu(false)} />
+      )}
+
       {/* Sidebar with Visible Text Labels */}
       <aside className={`teamly-sidebar ${mobileMenu ? 'open' : ''}`}>
         <div className="brand-header">
@@ -1454,15 +1557,13 @@ export default function App() {
                         <span className="item-title">{p.name}</span>
                         <span className="item-meta">{pTasks.length} tugas • {pPct}% selesai</span>
                       </button>
-                      {projects.length > 1 && (
-                        <button
+                      <button
                           className="item-delete-btn"
                           onClick={(e) => handleDeleteProject(p, e)}
                           title="Hapus project ini"
                         >
                           <Trash2 size={13} />
                         </button>
-                      )}
                     </div>
                   );
                 })}
@@ -1475,8 +1576,8 @@ export default function App() {
                       setProjectDropdown(false);
                     }}
                   >
-                    <Sparkles size={14} color="#ea580c" />
-                    <span>💡 Survey Ide Project AI</span>
+                    <Lightbulb size={14} color="#ea580c" />
+                    <span>Temukan Ide Project</span>
                   </button>
                   <button
                     className="dropdown-action-btn"
@@ -1497,12 +1598,11 @@ export default function App() {
         {/* Sidebar Nav Items with TEXT */}
         <nav className="teamly-nav">
           <button
-            className={`nav-btn highlight ${activeTab === 'generator' ? 'active' : ''}`}
+            className={`nav-btn ${activeTab === 'generator' ? 'active' : ''}`}
             onClick={() => { setActiveTab('generator'); setMobileMenu(false); }}
           >
             <Lightbulb size={18} />
-            <span>Survey Ide AI</span>
-            <span className="nav-badge-ai">AI</span>
+            <span>Temukan Ide</span>
           </button>
 
           <button
@@ -1530,25 +1630,32 @@ export default function App() {
             <span>Anggota Tim</span>
             <span className="nav-counter">{currentProjectMembers.length}</span>
           </button>
-
-          <button
-            className={`nav-btn ${activeTab === 'ai' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('ai'); setMobileMenu(false); }}
-          >
-            <Sparkles size={18} />
-            <span>AI Pembimbing</span>
-          </button>
         </nav>
 
         {/* Sidebar Footer with Profile */}
         <div className="teamly-sidebar-footer">
           <div className="profile-pill">
-            <div className="profile-avatar">
+            <div className="profile-avatar" style={{ background: isMember ? '#059669' : isLead ? '#ea580c' : '#6366f1' }}>
               {isGuest ? 'G' : (user?.name || 'A').slice(0, 1).toUpperCase()}
             </div>
             <div className="profile-text">
               <span className="profile-name">{isGuest ? 'Guest' : (user?.name || 'Admin Teamly')}</span>
-              <span className="profile-sub">{isGuest ? 'Mode Lihat Saja' : (user?.email || 'admin@teamly.com')}</span>
+              <span className="profile-sub">
+                {isGuest ? 'Mode Lihat Saja' : (
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <span>{user?.email || 'Email belum tersedia'}</span>
+                    {!isGuest && (
+                      <span style={{
+                        fontSize: '10px', fontWeight: '700', letterSpacing: '0.3px',
+                        color: isMember ? '#059669' : '#ea580c',
+                        textTransform: 'uppercase'
+                      }}>
+                        {isMember ? '● Anggota' : '★ Project Lead'}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </span>
             </div>
             {isGuest ? (
               <button
@@ -1572,15 +1679,21 @@ export default function App() {
         {/* Topbar: Only Search Bar & Profile (NO burger menu, NO Survey/Tambah Tugas buttons) */}
         <header className="teamly-topbar">
           <div className="topbar-left">
+            {/* Mobile hamburger button */}
+            <button
+              className="mobile-toggle-btn"
+              onClick={() => setMobileMenu(true)}
+            >
+              <Menu size={20} />
+            </button>
             <div className="topbar-breadcrumb">
               <span className="breadcrumb-sub">Teamly Workspace</span>
               <span className="breadcrumb-sep">/</span>
               <span className="breadcrumb-current">
                 {activeTab === 'dashboard' && 'Dashboard'}
-                {activeTab === 'generator' && 'Survey Ide AI'}
+                {activeTab === 'generator' && 'Temukan Ide'}
                 {activeTab === 'tasks' && 'Papan Tugas'}
                 {activeTab === 'team' && 'Anggota Tim'}
-                {activeTab === 'ai' && 'AI Pembimbing'}
               </span>
             </div>
           </div>
@@ -1740,41 +1853,138 @@ export default function App() {
 
         {/* ================= TAB 0: DASHBOARD ================= */}
         {activeTab === 'dashboard' && (
+          <>
+          {isMember && (
+            <div className="page-container member-dashboard">
+              <section className="member-dashboard-hero">
+                <div>
+                  <span className="member-dashboard-eyebrow"><CheckCircle2 size={14} /> RUANG KERJA ANGGOTA</span>
+                  <h1>Halo, {user?.name?.split(' ')[0] || 'anggota'}!</h1>
+                  <p>Ini ringkasan progres dan tugas yang menjadi tanggung jawab Anda di {currentProject?.name || 'project ini'}.</p>
+                </div>
+                <button className="btn-add-task" onClick={() => setActiveTab('tasks')}>
+                  <Kanban size={15} /> Buka tugas saya
+                </button>
+              </section>
+
+              <div className="member-dashboard-metrics">
+                <article className="member-stat-card member-stat-total">
+                  <span>Total tugas saya</span>
+                  <strong>{stats.total}</strong>
+                  <small>yang ditugaskan kepada Anda</small>
+                </article>
+                <article className="member-stat-card member-stat-active">
+                  <span>Sedang dikerjakan</span>
+                  <strong>{stats.counts.doing + stats.counts.review}</strong>
+                  <small>termasuk tugas dalam review</small>
+                </article>
+                <article className="member-stat-card member-stat-done">
+                  <span>Selesai</span>
+                  <strong>{stats.counts.done}</strong>
+                  <small>tugas yang sudah dituntaskan</small>
+                </article>
+                <article className={`member-stat-card ${stats.overdueCount ? 'member-stat-overdue' : 'member-stat-deadline'}`}>
+                  <span>{stats.overdueCount ? 'Terlambat' : 'Perlu perhatian'}</span>
+                  <strong>{stats.overdueCount || stats.highPriorityCount}</strong>
+                  <small>{stats.overdueCount ? 'tugas melewati tenggat' : 'tugas prioritas tinggi'}</small>
+                </article>
+              </div>
+
+              <div className="member-dashboard-content">
+                <section className="panel-box member-my-tasks">
+                  <div className="panel-box-header">
+                    <div className="panel-title-wrap">
+                      <Calendar size={16} color="#059669" />
+                      <h2 className="panel-title">Tenggat tugas saya</h2>
+                    </div>
+                    <button className="btn-ghost-sm" onClick={() => setActiveTab('tasks')}>
+                      Semua tugas <ArrowRight size={12} />
+                    </button>
+                  </div>
+                  {upcomingTasks.length === 0 ? (
+                    <div className="member-dashboard-empty">
+                      <CheckCircle2 size={22} />
+                      <span>Tidak ada tugas mendatang. Bagus, tetap pertahankan progresmu!</span>
+                    </div>
+                  ) : (
+                    <div className="member-upcoming-list">
+                      {upcomingTasks.slice(0, 5).map(task => (
+                        <button
+                          type="button"
+                          className="member-upcoming-task"
+                          key={task.id}
+                          onClick={() => { setSelectedTask(task); setModal('edit_task'); }}
+                        >
+                          <span className={`member-task-status ${task.status}`} />
+                          <span className="member-upcoming-title">{task.title}</span>
+                          <span className={`member-upcoming-date ${task.deadline < new Date().toISOString().slice(0, 10) ? 'late' : ''}`}>
+                            <Clock size={13} /> {task.deadline || 'Tanpa tenggat'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <aside className="panel-box member-progress-card">
+                  <div className="panel-title-wrap">
+                    <BarChart3 size={16} color="#059669" />
+                    <h2 className="panel-title">Progres pribadi</h2>
+                  </div>
+                  <div className="member-progress-value">{stats.progress}%</div>
+                  <div className="member-progress-track">
+                    <div style={{ width: `${stats.progress}%` }} />
+                  </div>
+                  <p>{stats.counts.done} dari {stats.total} tugas selesai</p>
+                  <div className="member-project-context">
+                    <span>PROJECT AKTIF</span>
+                    <strong>{currentProject?.name || 'Belum ada project'}</strong>
+                    <small>Peran: {currentProjectMembers.find(m => m.email?.toLowerCase() === user?.email?.toLowerCase())?.role || 'Anggota'}</small>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          )}
+          {!isMember && (
           <div className="page-container">
-            {/* Header Row: With + Tambah Project and + Tambah Tugas buttons */}
+            {/* Header Row */}
             <div className="page-header-row">
               <div>
-                <h1 className="page-main-title">{currentProject?.name}</h1>
+                <h1 className="page-main-title">{currentProject?.name || 'Dashboard'}</h1>
                 <p className="page-main-sub">
-                  Batas Waktu: {currentProject?.deadline || 'Belum diatur'} • {stats.progress}% Selesai ({stats.counts.done}/{stats.total} tugas)
+                  {currentProject
+                    ? `Tenggat: ${currentProject.deadline || 'Belum diatur'} • ${stats.progress}% selesai (${stats.counts.done} dari ${stats.total} tugas)`
+                    : 'Tidak ada project. Buat project baru untuk memulai.'}
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  className="btn-add-project"
-                  onClick={() => requireLogin(() => setModal('project'), 'menambah project baru')}
-                >
-                  <Plus size={15} />
-                  <span>Tambah Project</span>
-                </button>
-                <button
-                  className="btn-add-task"
-                  onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
-                >
-                  <Plus size={15} />
-                  <span>Tambah Tugas</span>
-                </button>
-              </div>
+              {isLead && (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    className="btn-add-project"
+                    onClick={() => requireLogin(() => setModal('project'), 'menambah project baru')}
+                  >
+                    <Plus size={15} />
+                    <span>Tambah Project</span>
+                  </button>
+                  <button
+                    className="btn-add-task"
+                    onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
+                  >
+                    <Plus size={15} />
+                    <span>Tambah Tugas</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* 4 Counter Banner Cards (Styled like Habo reference image with custom illustrations) */}
+            {/* 4 Counter Banner Cards */}
             <div className="metrics-banner-grid">
-              {/* Card 1: Total Tugas (Warm Orange) */}
+              {/* Card 1: Total Tugas */}
               <div className="metric-banner-card orange-theme">
                 <div className="metric-card-top">
-                  <span className="metric-pill-tag">Sprint Project</span>
-                  <span className="metric-sub-title">Semua Tugas Terdaftar</span>
+                  <span className="metric-pill-tag">Semua</span>
+                  <span className="metric-sub-title">Total tugas aktif</span>
                 </div>
                 <div className="metric-card-main">
                   <div className="metric-text-stack">
@@ -1787,11 +1997,11 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Card 2: Sedang Dikerjakan (Tech Blue) */}
+              {/* Card 2: Sedang Dikerjakan */}
               <div className="metric-banner-card blue-theme">
                 <div className="metric-card-top">
-                  <span className="metric-pill-tag">In Progress</span>
-                  <span className="metric-sub-title">Fokus Sprint Tim</span>
+                  <span className="metric-pill-tag">Berjalan</span>
+                  <span className="metric-sub-title">Sedang dikerjakan</span>
                 </div>
                 <div className="metric-card-main">
                   <div className="metric-text-stack">
@@ -1804,16 +2014,16 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Card 3: Prioritas Tinggi (Vibrant Purple) */}
+              {/* Card 3: Prioritas Tinggi */}
               <div className="metric-banner-card purple-theme">
                 <div className="metric-card-top">
-                  <span className="metric-pill-tag">Prioritas Tinggi</span>
-                  <span className="metric-sub-title">Harus Tuntas Duluan</span>
+                  <span className="metric-pill-tag">Penting</span>
+                  <span className="metric-sub-title">Perlu didahulukan</span>
                 </div>
                 <div className="metric-card-main">
                   <div className="metric-text-stack">
                     <span className="metric-huge-val">{stats.highPriorityCount}</span>
-                    <span className="metric-label-text">Tugas Kritis</span>
+                    <span className="metric-label-text">Prioritas Tinggi</span>
                   </div>
                   <div className="metric-art-box">
                     <PriorityTasksIllustration />
@@ -1821,22 +2031,20 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Card 4: Terlambat / Tepat Waktu (Coral Red or Emerald Green) */}
+              {/* Card 4: Terlambat / Tepat Waktu */}
               <div className={`metric-banner-card ${stats.overdueCount > 0 ? 'red-theme' : 'green-theme'}`}>
                 <div className="metric-card-top">
                   <span className="metric-pill-tag">
-                    {stats.overdueCount > 0 ? 'Perlu Ditinjau' : 'Tepat Waktu'}
+                    {stats.overdueCount > 0 ? 'Perhatian' : 'Aman'}
                   </span>
                   <span className="metric-sub-title">
-                    {stats.overdueCount > 0 ? 'Melewati Batas Waktu' : 'Semua On Track'}
+                    {stats.overdueCount > 0 ? 'Lewat dari tenggat' : 'Sesuai jadwal'}
                   </span>
                 </div>
                 <div className="metric-card-main">
                   <div className="metric-text-stack">
                     <span className="metric-huge-val">{stats.overdueCount}</span>
-                    <span className="metric-label-text">
-                      {stats.overdueCount > 0 ? 'Tugas Terlambat' : 'Terlambat (Aman)'}
-                    </span>
+                    <span className="metric-label-text">Tugas Terlambat</span>
                   </div>
                   <div className="metric-art-box">
                     <OverdueTasksIllustration isOverdue={stats.overdueCount > 0} />
@@ -1862,7 +2070,7 @@ export default function App() {
                   </div>
 
                   {upcomingTasks.length === 0 ? (
-                    <div className="panel-empty-text">Semua tugas telah selesai atau belum memiliki deadline.</div>
+                    <div className="panel-empty-text">Belum ada tugas dengan tenggat waktu.</div>
                   ) : (
                     <div className="deadline-tasks-list">
                       {upcomingTasks.map(t => {
@@ -1920,21 +2128,27 @@ export default function App() {
 
                   {/* Tasks on Canvas */}
                   <div className="timeline-chips-wrap">
-                    {currentProjectTasks.slice(0, 4).map((t) => (
-                      <div
-                        key={t.id}
-                        className={`timeline-chip ${t.status === 'doing' ? 'chip-active' : ''}`}
-                        onClick={() => { setSelectedTask(t); setModal('edit_task'); }}
-                      >
-                        <div className="chip-left">
-                          <span className="chip-category-text">{t.category || 'Tugas'}</span>
-                          <span className="chip-name-text">{t.title}</span>
-                        </div>
-                        <div className="chip-user-bubble">
-                          {(t.assignee || 'M').slice(0, 2).toUpperCase()}
-                        </div>
+                    {currentProjectTasks.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '13px', width: '100%' }}>
+                        Belum ada jadwal tugas aktif.
                       </div>
-                    ))}
+                    ) : (
+                      currentProjectTasks.slice(0, 4).map((t) => (
+                        <div
+                          key={t.id}
+                          className={`timeline-chip ${t.status === 'doing' ? 'chip-active' : ''}`}
+                          onClick={() => { setSelectedTask(t); setModal('edit_task'); }}
+                        >
+                          <div className="chip-left">
+                            <span className="chip-category-text">{t.category || 'Tugas'}</span>
+                            <span className="chip-name-text">{t.title}</span>
+                          </div>
+                          <div className="chip-user-bubble">
+                            {(t.assignee || 'M').slice(0, 2).toUpperCase()}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   {/* Habo-style Floating Add Button */}
@@ -2006,21 +2220,23 @@ export default function App() {
               </div>
             </div>
           </div>
+          )}
+          </>
         )}
 
-        {/* ================= TAB 1: SURVEY DECISION MAKER (1 QUESTION PER PAGE!) ================= */}
+        {/* ================= TAB 1: TEMUKAN IDE PROJECT ================= */}
         {activeTab === 'generator' && (
           <div className="page-container">
-            {surveyStep < 5 ? (
+            {surveyStep < 7 ? (
               <div className="survey-single-page-wrap">
                 {/* Survey Step Progress Bar */}
                 <div className="survey-progress-header">
                   <div className="progress-info-row">
-                    <span className="progress-step-text">Pertanyaan {surveyStep} dari 4</span>
-                    <span className="progress-pct-text">{surveyStep * 25}%</span>
+                    <span className="progress-step-text">Pertanyaan {surveyStep} dari 6</span>
+                    <span className="progress-pct-text">{Math.round((surveyStep / 6) * 100)}%</span>
                   </div>
                   <div className="survey-progress-track">
-                    <div className="survey-progress-fill" style={{ width: `${surveyStep * 25}%` }} />
+                    <div className="survey-progress-fill" style={{ width: `${(surveyStep / 6) * 100}%` }} />
                   </div>
                 </div>
 
@@ -2030,8 +2246,8 @@ export default function App() {
                     <div className="question-header">
                       <div className="question-badge">1</div>
                       <div>
-                        <h2 className="question-title">Bidang apa yang ingin kamu eksplorasi?</h2>
-                        <p className="question-sub">Pilih salah satu tema minat di bawah ini:</p>
+                        <h2 className="question-title">Topik apa yang paling menarik buat kelompokmu?</h2>
+                        <p className="question-sub">Pilih tema yang paling ingin kamu buatkan solusinya:</p>
                       </div>
                     </div>
 
@@ -2071,8 +2287,8 @@ export default function App() {
                     <div className="question-header">
                       <div className="question-badge">2</div>
                       <div>
-                        <h2 className="question-title">Target platform atau format mata kuliah apa?</h2>
-                        <p className="question-sub">Sesuaikan dengan kriteria output dari dosen pengampu:</p>
+                        <h2 className="question-title">Bentuk aplikasi apa yang ingin dibuat?</h2>
+                        <p className="question-sub">Sesuaikan dengan arahan dosen atau kenyamanan timmu:</p>
                       </div>
                     </div>
 
@@ -2103,8 +2319,8 @@ export default function App() {
                     <div className="question-header">
                       <div className="question-badge">3</div>
                       <div>
-                        <h2 className="question-title">Berapa jumlah anggota kelompokmu?</h2>
-                        <p className="question-sub">AI akan membagi peran dan beban kerja sesuai jumlah orang:</p>
+                        <h2 className="question-title">Berapa orang teman di kelompokmu?</h2>
+                        <p className="question-sub">Pembagian tugas sprint akan disesuaikan dengan jumlah orang:</p>
                       </div>
                     </div>
 
@@ -2135,14 +2351,51 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Question Page 4: Target Kesulitan */}
+                {/* Question Page 4: Target Waktu Pengerjaan */}
                 {surveyStep === 4 && (
                   <div className="survey-question-card">
                     <div className="question-header">
                       <div className="question-badge">4</div>
                       <div>
-                        <h2 className="question-title">Target skala dan kompleksitas project?</h2>
-                        <p className="question-sub">Tentukan seberapa mendalam fitur yang ingin dikerjakan:</p>
+                        <h2 className="question-title">Berapa target waktu pengerjaan yang kamu miliki?</h2>
+                        <p className="question-sub">Pilih perkiraan waktu sebelum tugas harus dikumpulkan:</p>
+                      </div>
+                    </div>
+
+                    <div className="survey-diff-list">
+                      {durationSurveyOptions.map(dur => {
+                        const isSelected = selectedDuration === dur.id;
+                        return (
+                          <button
+                            type="button"
+                            key={dur.id}
+                            className={`survey-diff-card ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedDuration(dur.id)}
+                          >
+                            <div className="diff-card-text">
+                              <span className="diff-card-title">{dur.label}</span>
+                              <span className="diff-card-sub">{dur.sub}</span>
+                            </div>
+                            {isSelected && (
+                              <div className="choice-check-dot">
+                                <Check size={13} strokeWidth={3} />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Question Page 5: Tingkat Kesulitan */}
+                {surveyStep === 5 && (
+                  <div className="survey-question-card">
+                    <div className="question-header">
+                      <div className="question-badge">5</div>
+                      <div>
+                        <h2 className="question-title">Tingkat kesulitan apa yang cocok untuk timmu?</h2>
+                        <p className="question-sub">Pilih gaya pengerjaan yang sesuai kemampuan bersama:</p>
                       </div>
                     </div>
 
@@ -2172,6 +2425,38 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Question Page 6: Fitur Utama */}
+                {surveyStep === 6 && (
+                  <div className="survey-question-card">
+                    <div className="question-header">
+                      <div className="question-badge">6</div>
+                      <div>
+                        <h2 className="question-title">Fitur utama apa yang paling ingin kamu tonjolkan?</h2>
+                        <p className="question-sub">Pilih satu fitur yang jadi fokus utama dalam penilaian tugasmu:</p>
+                      </div>
+                    </div>
+
+                    <div className="survey-platform-grid">
+                      {featureSurveyOptions.map(f => {
+                        const isSelected = selectedKeyFeature === f.id;
+                        const IconF = f.icon;
+                        return (
+                          <button
+                            type="button"
+                            key={f.id}
+                            className={`survey-pill-btn ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedKeyFeature(f.id)}
+                          >
+                            <IconF size={24} className="pill-icon" />
+                            <span className="pill-title">{f.label}</span>
+                            <span className="pill-sub">{f.sub}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Survey Step Navigation Footer */}
                 <div className="survey-step-footer">
                   {surveyStep > 1 ? (
@@ -2185,7 +2470,7 @@ export default function App() {
                     </button>
                   ) : <div />}
 
-                  {surveyStep < 4 ? (
+                  {surveyStep < 6 ? (
                     <button
                       type="button"
                       className="btn-step-next"
@@ -2204,12 +2489,12 @@ export default function App() {
                       {isAnalyzingIdeas ? (
                         <>
                           <LoaderCircle size={18} className="spin" />
-                          <span>AI Sedang Merumuskan 3 Ide...</span>
+                          <span>Menganalisis Rekomendasi Ide...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles size={18} />
-                          <span>✨ Rekomendasikan 3 Ide Project (AI Decision)</span>
+                          <span>✨ Temukan Rekomendasi Ide</span>
                         </>
                       )}
                     </button>
@@ -2217,13 +2502,13 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              /* Results Screen (Step 5) */
+              /* Results Screen (Step 7) */
               <div className="survey-results-wrap">
                 <div className="results-top-nav">
                   <div>
-                    <h2 className="results-main-title">🎯 3 Konsep Project Rekomendasi AI</h2>
+                    <h2 className="results-main-title">🎯 3 Rekomendasi Ide Project</h2>
                     <p className="results-main-sub">
-                      Pilih salah satu konsep untuk langsung membuka workspace dan sprint tugas:
+                      Pilih ide yang paling kalian minati untuk langsung membuka workspace dan daftar tugas:
                     </p>
                   </div>
                   <button
@@ -2231,7 +2516,7 @@ export default function App() {
                     onClick={() => { setSurveyStep(1); setGeneratedIdeas(null); }}
                   >
                     <RotateCcw size={14} />
-                    <span>Ulangi Survey</span>
+                    <span>Ulangi Pertanyaan</span>
                   </button>
                 </div>
 
@@ -2290,9 +2575,9 @@ export default function App() {
           <div className="page-container">
             <div className="page-header-row">
               <div>
-                <h1 className="page-main-title">Papan Tugas — {currentProject?.name}</h1>
+                <h1 className="page-main-title">{currentProject ? `Papan Tugas — ${currentProject.name}` : 'Papan Tugas'}</h1>
                 <p className="page-main-sub">
-                  Pantau alur pengerjaan tugas sprint kelompokmu secara real-time.
+                  {isMember ? 'Tugas yang diberikan ke Anda dalam project ini.' : 'Pantau alur pengerjaan tugas sprint kelompokmu secara real-time.'}
                 </p>
               </div>
 
@@ -2312,12 +2597,14 @@ export default function App() {
                   </button>
                 </div>
 
-                <button
-                  className="btn-add-task"
-                  onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
-                >
-                  <Plus size={14} /> Tambah Tugas
-                </button>
+                {isLead && (
+                  <button
+                    className="btn-add-task"
+                    onClick={() => requireLogin(() => setModal('task'), 'menambah tugas baru')}
+                  >
+                    <Plus size={14} /> Tambah Tugas
+                  </button>
+                )}
               </div>
             </div>
 
@@ -2334,13 +2621,15 @@ export default function App() {
                           <span className="column-title">{statusMeta[statusKey].label}</span>
                           <span className="column-count-badge">{colTasks.length}</span>
                         </div>
-                        <button
-                          className="column-quick-add-btn"
-                          onClick={() => requireLogin(() => { setSelectedTask({ status: statusKey }); setModal('task'); }, 'menambah tugas baru')}
-                          title={`Tambah tugas ke ${statusMeta[statusKey].label}`}
-                        >
-                          <Plus size={14} />
-                        </button>
+                        {isLead && (
+                          <button
+                            className="column-quick-add-btn"
+                            onClick={() => requireLogin(() => { setSelectedTask({ status: statusKey }); setModal('task'); }, 'menambah tugas baru')}
+                            title={`Tambah tugas ke ${statusMeta[statusKey].label}`}
+                          >
+                            <Plus size={14} />
+                          </button>
+                        )}
                       </div>
 
                       <div className="column-cards-stack">
@@ -2401,42 +2690,46 @@ export default function App() {
                                 </div>
 
                                 <div className="card-action-bar">
-                                  <div className="card-arrows-wrap">
-                                    {colIndex > 0 && (
-                                      <button
-                                        className="card-nav-btn"
-                                        onClick={() => moveTaskStatus(t, -1)}
-                                        title="Pindah ke tahap sebelumnya"
-                                      >
-                                        <ArrowLeft size={12} />
-                                      </button>
-                                    )}
-                                    {colIndex < statusOrder.length - 1 && (
-                                      <button
-                                        className="card-nav-btn"
-                                        onClick={() => moveTaskStatus(t, 1)}
-                                        title="Pindah ke tahap berikutnya"
-                                      >
-                                        <ArrowRight size={12} />
-                                      </button>
-                                    )}
-                                  </div>
+                                  {isLead && (
+                                    <div className="card-arrows-wrap">
+                                      {colIndex > 0 && (
+                                        <button
+                                          className="card-nav-btn"
+                                          onClick={() => moveTaskStatus(t, -1)}
+                                          title="Pindah ke tahap sebelumnya"
+                                        >
+                                          <ArrowLeft size={12} />
+                                        </button>
+                                      )}
+                                      {colIndex < statusOrder.length - 1 && (
+                                        <button
+                                          className="card-nav-btn"
+                                          onClick={() => moveTaskStatus(t, 1)}
+                                          title="Pindah ke tahap berikutnya"
+                                        >
+                                          <ArrowRight size={12} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
 
                                   <div className="card-icons-wrap">
                                     <button
                                       className="card-action-icon"
                                       onClick={() => { setSelectedTask(t); setModal('edit_task'); }}
-                                      title="Edit tugas"
+                                      title={isMember ? 'Lihat detail & beri feedback' : 'Edit tugas'}
                                     >
-                                      <Edit2 size={12} />
+                                      {isMember ? <MessageSquare size={12} /> : <Edit2 size={12} />}
                                     </button>
-                                    <button
-                                      className="card-action-icon del"
-                                      onClick={() => deleteTask(t)}
-                                      title="Hapus tugas"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
+                                    {isLead && (
+                                      <button
+                                        className="card-action-icon del"
+                                        onClick={() => deleteTask(t)}
+                                        title="Hapus tugas"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -2540,7 +2833,7 @@ export default function App() {
           <div className="page-container">
             <div className="page-header-row">
               <div>
-                <h1 className="page-main-title">Anggota Tim — {currentProject?.name}</h1>
+                <h1 className="page-main-title">{currentProject ? `Anggota Tim — ${currentProject.name}` : 'Anggota Tim'}</h1>
                 <p className="page-main-sub">
                   Atur peran dan pembagian beban tugas kuliah secara adil.
                 </p>
@@ -2553,7 +2846,14 @@ export default function App() {
               </button>
             </div>
 
-            <div className="team-cards-grid">
+            {currentProjectMembers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#94a3b8' }}>
+                <Users size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+                <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: '#475569' }}>Belum ada anggota tim terdaftar</p>
+                <p style={{ fontSize: '12px', marginTop: '4px' }}>Masuk ke akun untuk menambah atau mengelola anggota kelompok.</p>
+              </div>
+            ) : (
+              <div className="team-cards-grid">
               {currentProjectMembers.map(m => {
                 const activeCount = currentProjectTasks.filter(
                   t => (t.assignee_id === m.id || t.assignee === m.name) && t.status !== 'done'
@@ -2586,96 +2886,9 @@ export default function App() {
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* ================= TAB 4: AI MENTOR ================= */}
-        {activeTab === 'ai' && (
-          <div className="page-container">
-            <div className="page-header-row">
-              <div>
-                <h1 className="page-main-title">AI Pembimbing — {currentProject?.name}</h1>
-                <p className="page-main-sub">
-                  Konsultasikan kesulitan kode, pembagian sprint tugas, atau susunan laporan bab project kuliah.
-                </p>
-              </div>
-            </div>
-
-            <div className="ai-chat-two-columns">
-              <div className="ai-chat-main-card">
-                <div className="ai-messages-scroll">
-                  {chat.length === 0 ? (
-                    <div className="ai-empty-placeholder">
-                      <div className="ai-icon-bubble">
-                        <Sparkles size={24} />
-                      </div>
-                      <h3>Ada Kendala Teknis di "{currentProject?.name}"?</h3>
-                      <p>Pilih pertanyaan pembimbing di sebelah kanan atau tanyakan apa saja seputar tugas kelompokmu.</p>
-                    </div>
-                  ) : (
-                    chat.map((m, i) => (
-                      <div className={`ai-message-row ${m.role}`} key={i}>
-                        <div className="ai-message-bubble">
-                          {m.text}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  {aiBusy && (
-                    <div className="ai-loading-indicator">
-                      <LoaderCircle size={15} className="spin" />
-                      <span>AI sedang memproses jawaban...</span>
-                    </div>
-                  )}
-                </div>
-
-                <form
-                  className="ai-chat-input-bar"
-                  onSubmit={e => {
-                    e.preventDefault();
-                    sendAiChat();
-                  }}
-                >
-                  <input
-                    type="text"
-                    className="ai-text-input"
-                    placeholder="Tanyakan masalah teknis, laporan tugas, atau pembagian sprint..."
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    disabled={aiBusy}
-                  />
-                  <button type="submit" className="ai-submit-btn" disabled={aiBusy || !chatInput.trim()}>
-                    <Send size={15} />
-                  </button>
-                </form>
-              </div>
-
-              {/* Quick Prompts */}
-              <div className="ai-prompts-sidebar">
-                <h4 className="prompts-heading">Pertanyaan Cepat</h4>
-                <div className="prompts-stack">
-                  {[
-                    'Apa prioritas utama hari ini?',
-                    'Bantu susun struktur bab laporan tugas kuliah',
-                    'Tugas mana yang berisiko terlambat?',
-                    'Apakah beban kerja kelompok sudah seimbang?',
-                    'Ringkas status progres tugas saat ini'
-                  ].map(q => (
-                    <button
-                      key={q}
-                      className="prompt-chip-btn"
-                      onClick={() => sendAiChat(q)}
-                      disabled={aiBusy}
-                    >
-                      <span>{q}</span>
-                      <ArrowRight size={13} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
       </div>
 
       {/* ================= MODALS ================= */}
@@ -2801,6 +3014,7 @@ export default function App() {
                   required
                   defaultValue={selectedTask.title}
                   autoFocus
+                  disabled={isMember}
                 />
               </div>
 
@@ -2811,12 +3025,13 @@ export default function App() {
                     name="category"
                     className="form-input"
                     defaultValue={selectedTask.category || 'Frontend'}
+                    disabled={isMember}
                   />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Slot Waktu</label>
-                  <select name="time_slot" className="form-select" defaultValue={selectedTask.time_slot || '11.00'}>
+                  <select name="time_slot" className="form-select" defaultValue={selectedTask.time_slot || '11.00'} disabled={isMember}>
                     {timelineHours.map(h => (
                       <option key={h} value={h}>{h}</option>
                     ))}
@@ -2827,7 +3042,7 @@ export default function App() {
               <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label">Prioritas</label>
-                  <select name="priority" className="form-select" defaultValue={selectedTask.priority}>
+                  <select name="priority" className="form-select" defaultValue={selectedTask.priority} disabled={isMember}>
                     <option value="high">Tinggi</option>
                     <option value="medium">Sedang</option>
                     <option value="low">Rendah</option>
@@ -2836,7 +3051,7 @@ export default function App() {
 
                 <div className="form-group">
                   <label className="form-label">Penanggung Jawab</label>
-                  <select name="assignee_id" className="form-select" defaultValue={selectedTask.assignee_id || ''}>
+                  <select name="assignee_id" className="form-select" defaultValue={selectedTask.assignee_id || ''} disabled={isMember}>
                     <option value="">Belum Ditugaskan</option>
                     {currentProjectMembers.map(m => (
                       <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
@@ -2853,6 +3068,7 @@ export default function App() {
                     type="date"
                     className="form-input"
                     defaultValue={selectedTask.deadline || ''}
+                    disabled={isMember}
                   />
                 </div>
 
@@ -3081,7 +3297,9 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setModal('')}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">{authMode === 'login' ? 'Masuk ke Teamly' : 'Daftar Akun Teamly'}</h3>
+              <h3 className="modal-title">
+                {authMode === 'verify' ? 'Verifikasi Email' : authMode === 'login' ? 'Masuk ke Teamly' : 'Daftar Akun Teamly'}
+              </h3>
               <button className="modal-close-btn" onClick={() => { setModal(''); setAuthModalPrompt(''); }}>
                 <X size={18} />
               </button>
@@ -3092,6 +3310,23 @@ export default function App() {
               </div>
             )}
             <form onSubmit={handleAuth}>
+              {authMode === 'verify' && (
+                <>
+                  <input type="hidden" name="email" value={pendingCredentials?.email || ''} />
+                  <div className="form-group">
+                    <label className="form-label">Kode Verifikasi Email</label>
+                    <input
+                      name="code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      className="form-input"
+                      required
+                      placeholder="Masukkan kode 6 digit"
+                    />
+                  </div>
+                </>
+              )}
               {authMode === 'register' && (
                 <div className="form-group">
                   <label className="form-label">Nama Lengkap</label>
@@ -3099,27 +3334,38 @@ export default function App() {
                 </div>
               )}
 
-              <div className="form-group">
+              {authMode !== 'verify' && <div className="form-group">
                 <label className="form-label">Email</label>
                 <input name="email" type="email" className="form-input" required placeholder="nama@kampus.ac.id" />
-              </div>
+              </div>}
 
-              <div className="form-group">
+              {authMode !== 'verify' && <div className="form-group">
                 <label className="form-label">Password</label>
                 <input name="password" type="password" minLength={8} className="form-input" required placeholder="Minimal 8 karakter" />
-              </div>
+              </div>}
 
               <div className="modal-actions" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
                 <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-                  {authMode === 'login' ? 'Masuk' : 'Daftar Sekarang'}
+                  {authMode === 'verify' ? 'Verifikasi dan Masuk' : authMode === 'login' ? 'Masuk' : 'Daftar Sekarang'}
                 </button>
-                <button
-                  type="button"
-                  className="btn-link"
-                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                >
-                  {authMode === 'login' ? 'Belum punya akun? Daftar di sini' : 'Sudah punya akun? Masuk di sini'}
-                </button>
+                {authMode === 'verify' ? (
+                  <>
+                    <button type="button" className="btn-link" onClick={handleResendVerification}>
+                      Kirim ulang kode
+                    </button>
+                    <button type="button" className="btn-link" onClick={() => setAuthMode('login')}>
+                      Kembali ke masuk
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-link"
+                    onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                  >
+                    {authMode === 'login' ? 'Belum punya akun? Daftar di sini' : 'Sudah punya akun? Masuk di sini'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -3160,15 +3406,103 @@ export default function App() {
           <Users size={20} />
           <span>Tim</span>
         </button>
-        <button
-          type="button"
-          className={`mobile-nav-item ${activeTab === 'ai' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ai')}
-        >
-          <Sparkles size={20} />
-          <span>AI Chat</span>
-        </button>
       </nav>
+
+      {/* Modal: Konfirmasi Hapus Project */}
+      {deleteProjectConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteProjectConfirm(null)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '360px',
+              padding: '28px 24px 24px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0',
+              position: 'relative',
+              textAlign: 'center',
+            }}
+          >
+            {/* Close btn */}
+            <button
+              onClick={() => setDeleteProjectConfirm(null)}
+              style={{
+                position: 'absolute', top: '16px', right: '16px',
+                background: '#f3f4f6', border: 'none', borderRadius: '50%',
+                width: '30px', height: '30px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#6b7280',
+              }}
+            >
+              <X size={15} />
+            </button>
+
+            {/* Icon */}
+            <div style={{
+              width: '60px', height: '60px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '16px',
+            }}>
+              <Trash2 size={26} color="#dc2626" />
+            </div>
+
+            {/* Title */}
+            <h3 style={{ fontSize: '17px', fontWeight: '700', color: '#111827', margin: '0 0 8px' }}>
+              Hapus Project?
+            </h3>
+
+            {/* Project name */}
+            <div style={{
+              background: '#f9fafb', border: '1px solid #e5e7eb',
+              borderRadius: '10px', padding: '10px 16px', margin: '4px 0 12px',
+              width: '100%', boxSizing: 'border-box',
+            }}>
+              <span style={{ fontWeight: '600', fontSize: '13px', color: '#374151' }}>
+                {deleteProjectConfirm.name}
+              </span>
+            </div>
+
+            {/* Warning text */}
+            <p style={{ fontSize: '12.5px', color: '#9ca3af', lineHeight: '1.5', margin: '0 0 20px' }}>
+              Semua tugas & anggota akan ikut terhapus dan tidak bisa dikembalikan.
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+              <button
+                onClick={() => setDeleteProjectConfirm(null)}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: '12px',
+                  background: '#f3f4f6', border: 'none', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '13.5px', color: '#374151',
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDeleteProject}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  border: 'none', cursor: 'pointer',
+                  fontWeight: '600', fontSize: '13.5px', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  boxShadow: '0 4px 14px rgba(220,38,38,0.35)',
+                }}
+              >
+                <Trash2 size={13} />
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (

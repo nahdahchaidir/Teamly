@@ -16,6 +16,8 @@ uvicorn app.main:app --reload --port 8000
 - API Docs: `http://localhost:8000/docs`
 - Database default: SQLite (`teamly.db` / `teampilot.db`)
 - Opsional: Tambahkan `GEMINI_API_KEY` pada `.env` untuk mengaktifkan respons AI via Google Gemini.
+- Pendaftaran akun membutuhkan SMTP untuk mengirim kode verifikasi. Isi `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, dan `SMTP_FROM_EMAIL` pada `.env`; `SMTP_USE_TLS=true` mengaktifkan STARTTLS.
+- Kode verifikasi berlaku 10 menit. Email harus diverifikasi sebelum akun dapat masuk.
 
 ## Endpoint Utama
 - `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`

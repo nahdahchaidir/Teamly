@@ -4,8 +4,11 @@ from typing import Optional
 
 class RegisterIn(BaseModel): name: str; email: EmailStr; password: str
 class LoginIn(BaseModel): email: EmailStr; password: str
+class VerifyEmailIn(BaseModel): email: EmailStr; code: str
+class ResendVerificationIn(BaseModel): email: EmailStr; password: str
 class UserOut(BaseModel): id: int; name: str; email: EmailStr; model_config = ConfigDict(from_attributes=True)
 class TokenOut(BaseModel): access_token: str; token_type: str = 'bearer'; user: UserOut
+class VerificationOut(BaseModel): message: str
 class ProjectIn(BaseModel): name: str; description: str = ''; start_date: Optional[date] = None; deadline: Optional[date] = None
 class ProjectOut(BaseModel): id: int; name: str; description: str; owner_id: int; start_date: Optional[date]; deadline: Optional[date]; model_config = ConfigDict(from_attributes=True)
 class MemberIn(BaseModel): name: str; email: str = ''; role: str = 'Member'

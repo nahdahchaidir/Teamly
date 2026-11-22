@@ -142,6 +142,23 @@ button {
   background: transparent;
   border: 0;
   color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 7px;
+  cursor: pointer;
+  color: #374151;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 /* Sidebar Project Selector Dropdown */
@@ -332,33 +349,19 @@ button {
   font-weight: 700;
 }
 
-.nav-btn.highlight {
-  background: linear-gradient(135deg, #fff7ed, #ffedd5);
-  color: #ea580c;
-  font-weight: 700;
-  border: 1px solid #fed7aa;
-  margin-bottom: 6px;
-}
-
-.nav-btn.highlight.active {
-  background: #ea580c;
-  color: white;
-  border-color: #ea580c;
-}
-
 .nav-badge-ai {
   margin-left: auto;
   font-size: 10px;
   font-weight: 800;
-  background: #ffedd5;
-  color: #ea580c;
+  background: #f1f5f9;
+  color: #64748b;
   padding: 2px 6px;
   border-radius: 6px;
 }
 
-.nav-btn.highlight.active .nav-badge-ai {
-  background: rgba(255, 255, 255, 0.25);
-  color: white;
+.nav-btn.active .nav-badge-ai {
+  background: rgba(234, 88, 12, 0.15);
+  color: #ea580c;
 }
 
 .nav-counter {
@@ -1351,8 +1354,8 @@ button {
 
 .choice-check-dot {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: -8px;
+  right: -8px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -1361,6 +1364,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 6px rgba(249,115,22,0.4);
+  border: 2px solid white;
 }
 
 /* Platform 4 Grid */
@@ -2648,7 +2653,7 @@ button {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 10px));
   }
   .mobile-toggle-btn, .mobile-close-btn {
-    display: block;
+    display: flex;
   }
 
   /* Mobile Bottom Navigation Bar */
@@ -3680,4 +3685,526 @@ button {
   background: #f1f5f9;
   padding: 2px 6px;
   border-radius: 6px;
+}
+
+/* ================= MOBILE RESPONSIVE (max-width: 768px) COMPREHENSIVE ================= */
+@media (max-width: 768px) {
+
+  /* --- Layout utama --- */
+  .teamly-app-shell {
+    flex-direction: column;
+  }
+
+  .teamly-main {
+    margin-left: 0 !important;
+    padding: 12px 12px calc(72px + env(safe-area-inset-bottom, 0px)) 12px;
+    min-height: 100vh;
+  }
+
+  /* --- Topbar --- */
+  .teamly-topbar {
+    padding: 0 12px;
+    height: 52px;
+  }
+
+  .topbar-search-wrap {
+    max-width: 160px;
+  }
+
+  .topbar-search-input {
+    font-size: 12px;
+    padding: 0 10px 0 32px;
+    height: 34px;
+  }
+
+  /* --- Page header --- */
+  .page-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .page-main-title {
+    font-size: 18px !important;
+  }
+
+  .page-main-sub {
+    font-size: 12px !important;
+  }
+
+  .page-header-row > div:last-child {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-add-project,
+  .btn-add-task {
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 10px;
+    justify-content: center;
+  }
+
+  /* --- Metric banner cards --- */
+  .metrics-banner-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  .metric-banner-card {
+    padding: 14px 12px !important;
+  }
+
+  .metric-huge-val {
+    font-size: 28px !important;
+  }
+
+  .metric-art-box {
+    display: none;
+  }
+
+  /* --- Dashboard grid --- */
+  .dashboard-grid-layout {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  /* --- Kanban board --- */
+  .kanban-columns-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .kanban-col-header {
+    padding: 10px 12px;
+  }
+
+  /* --- Task list --- */
+  .task-list-table-wrap {
+    overflow-x: auto;
+  }
+
+  .task-list-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 10px;
+  }
+
+  .task-row-title {
+    font-size: 12px;
+  }
+
+  /* --- Survey --- */
+  .survey-domain-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .survey-platform-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .survey-team-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .survey-duration-grid,
+  .survey-difficulty-grid,
+  .survey-feature-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .survey-question-card {
+    padding: 16px 14px !important;
+  }
+
+  .question-title {
+    font-size: 15px !important;
+  }
+
+  /* --- Results cards --- */
+  .results-cards-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .idea-result-card {
+    padding: 16px 14px !important;
+  }
+
+  /* --- Team page --- */
+  .team-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Modal --- */
+  .modal-card {
+    max-width: calc(100vw - 32px) !important;
+    width: 100%;
+    border-radius: 16px;
+    padding: 18px 16px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-overlay {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  /* --- Guest banner --- */
+  .guest-compact-notice {
+    margin: 10px 12px 0 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .guest-notice-text {
+    font-size: 11px;
+  }
+
+  /* --- Search dropdown --- */
+  .search-results-dropdown {
+    min-width: 90vw;
+    left: -40px;
+  }
+
+  /* --- Notification dropdown --- */
+  .notification-panel-dropdown {
+    width: 90vw;
+    right: -12px;
+  }
+
+  /* --- Timeline --- */
+  .timeline-scroll-wrap {
+    overflow-x: auto;
+  }
+
+  .timeline-row {
+    min-width: 500px;
+  }
+
+  /* --- Project dropdown --- */
+  .project-dropdown-panel {
+    width: calc(100vw - 48px) !important;
+    max-width: 340px;
+  }
+
+  /* --- Sidebar overlay on mobile --- */
+  .teamly-sidebar {
+    z-index: 200;
+    position: fixed;
+    height: 100vh;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+  }
+
+  /* Sidebar backdrop */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 199;
+  }
+
+  /* --- Page container padding --- */
+  .page-container {
+    padding: 0 !important;
+  }
+
+  /* --- Misc typography --- */
+  h1, h2 {
+    word-break: break-word;
+  }
+
+  .section-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* --- Sprint focus & upcoming section --- */
+  .sprint-tasks-list,
+  .upcoming-tasks-list {
+    gap: 8px;
+  }
+
+  .sprint-task-card,
+  .upcoming-task-row {
+    padding: 10px 12px;
+  }
+
+  /* --- Auth page --- */
+  .auth-clean-box {
+    padding: 20px 16px 18px !important;
+    border-radius: 20px;
+  }
+
+  .auth-clean-name {
+    font-size: 20px !important;
+  }
+
+  /* --- Welcome / splash --- */
+  .welcome-app-name {
+    font-size: 32px !important;
+  }
+
+  .welcome-logo-icon {
+    width: 68px !important;
+    height: 68px !important;
+  }
+}
+
+/* ================= VERY SMALL SCREENS (max-width: 380px) ================= */
+@media (max-width: 380px) {
+  .metrics-banner-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn-add-project,
+  .btn-add-task {
+    font-size: 11px;
+    padding: 7px 8px;
+  }
+
+  .metric-huge-val {
+    font-size: 24px !important;
+  }
+
+  .topbar-search-wrap {
+    display: none;
+  }
+}
+
+.member-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-verification-note {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 12px;
+}
+
+.member-dashboard-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px 32px;
+  border: 1px solid #bbf7d0;
+  border-radius: 22px;
+  background: linear-gradient(120deg, #ecfdf5 0%, #f0fdfa 60%, #eff6ff 100%);
+}
+
+.member-dashboard-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #047857;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.member-dashboard-hero h1 {
+  margin: 10px 0 5px;
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.member-dashboard-hero p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.member-dashboard-hero .btn-add-task {
+  flex: none;
+}
+
+.member-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.member-stat-card {
+  display: flex;
+  min-height: 122px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 18px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+}
+
+.member-stat-card span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.member-stat-card strong {
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.member-stat-card small {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.member-stat-active strong { color: #2563eb; }
+.member-stat-done strong { color: #059669; }
+.member-stat-overdue strong { color: #e11d48; }
+.member-stat-deadline strong { color: #d97706; }
+
+.member-dashboard-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 18px;
+}
+
+.member-my-tasks,
+.member-progress-card {
+  min-height: 230px;
+}
+
+.member-dashboard-empty {
+  display: flex;
+  min-height: 145px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #059669;
+  text-align: center;
+  font-size: 13px;
+}
+
+.member-upcoming-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-upcoming-task {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 2px;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-upcoming-task:last-child { border-bottom: 0; }
+.member-task-status {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.member-task-status.doing { background: #3b82f6; }
+.member-task-status.review { background: #8b5cf6; }
+.member-task-status.done { background: #10b981; }
+
+.member-upcoming-title {
+  overflow: hidden;
+  flex: 1;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-upcoming-date {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.member-upcoming-date.late { color: #e11d48; }
+
+.member-progress-card .panel-title-wrap { margin-bottom: 18px; }
+.member-progress-value {
+  color: #059669;
+  font-size: 34px;
+  font-weight: 850;
+}
+.member-progress-track {
+  height: 9px;
+  overflow: hidden;
+  margin: 9px 0;
+  border-radius: 10px;
+  background: #e2e8f0;
+}
+.member-progress-track > div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #34d399, #059669);
+}
+.member-progress-card > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+.member-project-context {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 21px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+.member-project-context span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+.member-project-context strong {
+  color: #334155;
+  font-size: 13px;
+}
+.member-project-context small {
+  color: #059669;
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .member-dashboard { gap: 14px; }
+  .member-dashboard-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 21px 18px;
+  }
+  .member-dashboard-hero .btn-add-task { width: 100%; }
+  .member-dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .member-stat-card { min-height: 108px; padding: 14px; }
+  .member-dashboard-content { grid-template-columns: 1fr; gap: 12px; }
+  .member-upcoming-task { gap: 8px; }
+  .member-upcoming-title { font-size: 12px; }
+  .member-upcoming-date { font-size: 10px; }
 }

@@ -22,4 +22,5 @@ def current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)):
     except (JWTError, ValueError, KeyError): raise HTTPException(401, 'Invalid or expired token')
     user = db.get(User, user_id)
     if not user: raise HTTPException(401, 'User not found')
+    if not user.email_verified: raise HTTPException(403, 'Email belum diverifikasi')
     return user

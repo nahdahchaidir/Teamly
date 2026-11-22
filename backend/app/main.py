@@ -1,9 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import date
+from sqlalchemy import func, inspect, or_, text
+from datetime import date, datetime, timedelta
+from email.message import EmailMessage
 import os
+import secrets
+import smtplib
 from dotenv import load_dotenv
 from .database import Base, engine, get_db
 from .models import User, Project, Member, Task, ActivityLog
@@ -12,6 +15,22 @@ from .security import hash_password, verify_password, create_token, current_user
 from .ai import ask_ai, project_prompt, generate_project_idea
 
 load_dotenv(); Base.metadata.create_all(bind=engine)
+
+def ensure_email_verification_columns():
+    columns = {column['name'] for column in inspect(engine).get_columns('users')}
+    additions = {
+        'email_verified': 'BOOLEAN NOT NULL DEFAULT FALSE',
+        'verification_code_hash': 'VARCHAR(255)',
+        'verification_expires_at': 'TIMESTAMP',
+        'verification_attempts': 'INTEGER NOT NULL DEFAULT 0',
+    }
+    with engine.begin() as connection:
+        for column, definition in additions.items():
+            if column not in columns:
+                connection.execute(text(f'ALTER TABLE users ADD COLUMN {column} {definition}'))
+
+ensure_email_verification_columns()
+
 app = FastAPI(title='Teamly AI API', version='1.0.0', description='AI-powered project management assistant')
 app.add_middleware(
     CORSMiddleware,
@@ -21,49 +40,104 @@ app.add_middleware(
     allow_headers=['*']
 )
 
-def seed_admin_user():
-    db = next(get_db())
-    try:
-        admin_email = 'admin@teamly.com'
-        admin = db.query(User).filter(User.email == admin_email).first()
-        if not admin:
-            admin = User(name='Admin Teamly', email=admin_email, hashed_password=hash_password('admin123'))
-            db.add(admin)
-            db.commit()
-            db.refresh(admin)
-            p = Project(
-                name='Sistem Informasi Teamly',
-                description='Workspace utama administrasi dan pengelolaan tugas tim',
-                deadline=date(2026, 12, 31),
-                owner_id=admin.id
-            )
-            db.add(p)
-            db.commit()
-            db.refresh(p)
-            db.add(Member(project_id=p.id, user_id=admin.id, name=admin.name, email=admin.email, role='Administrator'))
-            db.commit()
-    except Exception as e:
-        print(f"Seed admin user note: {e}")
-    finally:
-        db.close()
+def send_verification_email(email: str, code: str):
+    host = os.getenv('SMTP_HOST')
+    sender = os.getenv('SMTP_FROM_EMAIL')
+    username = os.getenv('SMTP_USERNAME')
+    password = os.getenv('SMTP_PASSWORD')
+    if not host or not sender:
+        raise HTTPException(503, 'Verifikasi email belum dikonfigurasi. Hubungi administrator.')
 
-seed_admin_user()
+    try:
+        port = int(os.getenv('SMTP_PORT', '587'))
+        message = EmailMessage()
+        message['Subject'] = 'Kode verifikasi akun Teamly'
+        message['From'] = sender
+        message['To'] = email
+        message.set_content(
+            f'Kode verifikasi Teamly Anda: {code}\n'
+            'Kode ini berlaku selama 10 menit. Jangan bagikan kode ini kepada siapa pun.'
+        )
+        with smtplib.SMTP(host, port, timeout=10) as server:
+            if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
+                server.starttls()
+            if username and password:
+                server.login(username, password)
+            server.send_message(message)
+    except (OSError, smtplib.SMTPException, ValueError) as exc:
+        raise HTTPException(503, 'Email verifikasi gagal dikirim. Coba lagi nanti.') from exc
+
+
+def prepare_verification(user: User):
+    code = f'{secrets.randbelow(1_000_000):06d}'
+    user.verification_code_hash = hash_password(code)
+    user.verification_expires_at = datetime.utcnow() + timedelta(minutes=10)
+    user.verification_attempts = 0
+    send_verification_email(user.email, code)
 
 @app.get('/api/health')
 def health(): return {'status':'ok','app':'Teamly AI'}
 
-@app.post('/api/auth/register', response_model=TokenOut)
+@app.post('/api/auth/register', response_model=VerificationOut)
 def register(data: RegisterIn, db: Session = Depends(get_db)):
     if len(data.password) < 8: raise HTTPException(400, 'Password minimal 8 karakter')
-    if db.query(User).filter(User.email == data.email).first(): raise HTTPException(409, 'Email sudah terdaftar')
-    user = User(name=data.name, email=data.email, hashed_password=hash_password(data.password)); db.add(user); db.commit(); db.refresh(user)
-    return {'access_token':create_token(user.id),'user':user}
+    email = str(data.email).lower()
+    if db.query(User).filter(func.lower(User.email) == email).first(): raise HTTPException(409, 'Email sudah terdaftar')
+    user = User(name=data.name, email=email, hashed_password=hash_password(data.password))
+    prepare_verification(user)
+    db.add(user)
+    db.commit()
+    return {'message': 'Kode verifikasi telah dikirim ke email Anda.'}
 
 @app.post('/api/auth/login', response_model=TokenOut)
 def login(data: LoginIn, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
+    user = db.query(User).filter(func.lower(User.email) == str(data.email).lower()).first()
     if not user or not verify_password(data.password, user.hashed_password): raise HTTPException(401, 'Email atau password salah')
+    if not user.email_verified: raise HTTPException(403, 'Email belum diverifikasi')
     return {'access_token':create_token(user.id),'user':user}
+
+@app.post('/api/auth/verify-email', response_model=TokenOut)
+def verify_email(data: VerifyEmailIn, db: Session = Depends(get_db)):
+    email = str(data.email).lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+    if not user or user.email_verified or not user.verification_code_hash:
+        raise HTTPException(400, 'Kode verifikasi tidak valid atau sudah kedaluwarsa')
+    if user.verification_attempts >= 5:
+        user.verification_code_hash = None
+        user.verification_expires_at = None
+        db.commit()
+        raise HTTPException(400, 'Batas percobaan tercapai. Minta kode verifikasi baru.')
+    if not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
+        user.verification_code_hash = None
+        user.verification_expires_at = None
+        db.commit()
+        raise HTTPException(400, 'Kode verifikasi tidak valid atau sudah kedaluwarsa')
+    if len(data.code) != 6 or not data.code.isdigit() or not verify_password(data.code, user.verification_code_hash):
+        user.verification_attempts += 1
+        if user.verification_attempts >= 5:
+            user.verification_code_hash = None
+            user.verification_expires_at = None
+        db.commit()
+        raise HTTPException(400, 'Kode verifikasi salah')
+    user.email_verified = True
+    user.verification_code_hash = None
+    user.verification_expires_at = None
+    user.verification_attempts = 0
+    db.commit()
+    db.refresh(user)
+    return {'access_token': create_token(user.id), 'user': user}
+
+@app.post('/api/auth/verification/resend', response_model=VerificationOut)
+def resend_verification(data: ResendVerificationIn, db: Session = Depends(get_db)):
+    email = str(data.email).lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(401, 'Email atau password salah')
+    if user.email_verified:
+        raise HTTPException(400, 'Email sudah diverifikasi. Silakan masuk.')
+    prepare_verification(user)
+    db.commit()
+    return {'message': 'Kode verifikasi baru telah dikirim ke email Anda.'}
 
 @app.get('/api/auth/me', response_model=UserOut)
 def me(user: User = Depends(current_user)): return user
@@ -73,9 +147,26 @@ def owned_project(project_id, user, db):
     if not p: raise HTTPException(404, 'Project tidak ditemukan')
     return p
 
+def accessible_project(project_id, user, db):
+    p = db.query(Project).filter(Project.id == project_id).first()
+    if not p: raise HTTPException(404, 'Project tidak ditemukan')
+    if p.owner_id == user.id:
+        return p
+    member = db.query(Member.id).filter(
+        Member.project_id == project_id,
+        func.lower(Member.email) == user.email.lower()
+    ).first()
+    if not member: raise HTTPException(404, 'Project tidak ditemukan')
+    return p
+
 @app.get('/api/projects', response_model=list[ProjectOut])
 def list_projects(db: Session=Depends(get_db), user: User=Depends(current_user)):
-    return db.query(Project).filter(Project.owner_id==user.id).order_by(Project.created_at.desc()).all()
+    return db.query(Project).outerjoin(Member, Member.project_id == Project.id).filter(
+        or_(
+            Project.owner_id == user.id,
+            func.lower(Member.email) == user.email.lower()
+        )
+    ).distinct().order_by(Project.created_at.desc()).all()
 
 @app.post('/api/projects', response_model=ProjectOut)
 def create_project(data: ProjectIn, db: Session=Depends(get_db), user: User=Depends(current_user)):
@@ -84,7 +175,7 @@ def create_project(data: ProjectIn, db: Session=Depends(get_db), user: User=Depe
     return p
 
 @app.get('/api/projects/{pid}', response_model=ProjectOut)
-def get_project(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)): return owned_project(pid,user,db)
+def get_project(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)): return accessible_project(pid,user,db)
 
 @app.delete('/api/projects/{pid}')
 def delete_project(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
@@ -92,7 +183,7 @@ def delete_project(pid:int, db:Session=Depends(get_db), user:User=Depends(curren
 
 @app.get('/api/projects/{pid}/members', response_model=list[MemberOut])
 def members(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    owned_project(pid,user,db); return db.query(Member).filter(Member.project_id==pid).all()
+    accessible_project(pid,user,db); return db.query(Member).filter(Member.project_id==pid).all()
 
 @app.post('/api/projects/{pid}/members', response_model=MemberOut)
 def add_member(pid:int, data:MemberIn, db:Session=Depends(get_db), user:User=Depends(current_user)):
@@ -108,7 +199,7 @@ def delete_member(pid:int, mid:int, db:Session=Depends(get_db), user:User=Depend
 
 @app.get('/api/projects/{pid}/tasks', response_model=list[TaskOut])
 def tasks(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    owned_project(pid,user,db); return db.query(Task).filter(Task.project_id==pid).order_by(Task.created_at.desc()).all()
+    accessible_project(pid,user,db); return db.query(Task).filter(Task.project_id==pid).order_by(Task.created_at.desc()).all()
 
 @app.post('/api/projects/{pid}/tasks', response_model=TaskOut)
 def create_task(pid:int, data:TaskIn, db:Session=Depends(get_db), user:User=Depends(current_user)):
@@ -128,8 +219,19 @@ def create_task(pid:int, data:TaskIn, db:Session=Depends(get_db), user:User=Depe
 def update_task(tid:int, data:dict, db:Session=Depends(get_db), user:User=Depends(current_user)):
     t=db.get(Task,tid)
     if not t: raise HTTPException(404,'Task tidak ditemukan')
-    owned_project(t.project_id,user,db)
-    allowed={'title','description','assignee_id','status','priority','deadline','estimated_hours'}
+    project = db.get(Project, t.project_id)
+    if not project: raise HTTPException(404, 'Project tidak ditemukan')
+    is_owner = project.owner_id == user.id
+    if is_owner:
+        allowed={'title','description','assignee_id','status','priority','deadline','estimated_hours'}
+    else:
+        member = db.query(Member).filter(
+            Member.project_id == t.project_id,
+            func.lower(Member.email) == user.email.lower()
+        ).first()
+        if not member or t.assignee_id != member.id:
+            raise HTTPException(404, 'Task tidak ditemukan')
+        allowed={'status','description'}
     for k,v in data.items():
         if k in allowed: setattr(t,k,v)
     if t.status not in ['todo','doing','review','done']: raise HTTPException(400,'Status tidak valid')
@@ -142,7 +244,7 @@ def update_task(tid:int, data:dict, db:Session=Depends(get_db), user:User=Depend
 
 @app.get('/api/projects/{pid}/notifications')
 def project_notifications(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    owned_project(pid,user,db)
+    accessible_project(pid,user,db)
     return db.query(ActivityLog).filter(ActivityLog.project_id==pid).order_by(ActivityLog.created_at.desc()).limit(20).all()
 
 @app.delete('/api/tasks/{tid}')
@@ -153,7 +255,7 @@ def delete_task(tid:int, db:Session=Depends(get_db), user:User=Depends(current_u
 
 @app.get('/api/projects/{pid}/analytics')
 def analytics(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    p=owned_project(pid,user,db); ts=db.query(Task).filter(Task.project_id==pid).all(); ms=db.query(Member).filter(Member.project_id==pid).all()
+    p=accessible_project(pid,user,db); ts=db.query(Task).filter(Task.project_id==pid).all(); ms=db.query(Member).filter(Member.project_id==pid).all()
     counts={s:sum(1 for t in ts if t.status==s) for s in ['todo','doing','review','done']}
     overdue=[t for t in ts if t.deadline and t.deadline < date.today() and t.status!='done']
     total=len(ts); progress=round(counts['done']/total*100) if total else 0
@@ -165,13 +267,13 @@ def analytics(pid:int, db:Session=Depends(get_db), user:User=Depends(current_use
 
 @app.get('/api/projects/{pid}/insights')
 async def insights(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    p=owned_project(pid,user,db); ts=db.query(Task).filter(Task.project_id==pid).all(); ms=db.query(Member).filter(Member.project_id==pid).all()
+    p=accessible_project(pid,user,db); ts=db.query(Task).filter(Task.project_id==pid).all(); ms=db.query(Member).filter(Member.project_id==pid).all()
     prompt=project_prompt(p,ts,ms,'Analyze task priority, workload balance, deadline risks, and give practical next steps.')
     return {'analysis':await ask_ai(prompt),'provider':'gemini' if os.getenv('GEMINI_API_KEY') else 'rule-based-fallback'}
 
 @app.post('/api/ai/chat')
 async def chat(data:ChatIn, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    p=owned_project(data.project_id,user,db); ts=db.query(Task).filter(Task.project_id==p.id).all(); ms=db.query(Member).filter(Member.project_id==p.id).all()
+    p=accessible_project(data.project_id,user,db); ts=db.query(Task).filter(Task.project_id==p.id).all(); ms=db.query(Member).filter(Member.project_id==p.id).all()
     return {'answer':await ask_ai(project_prompt(p,ts,ms,data.message)),'provider':'gemini' if os.getenv('GEMINI_API_KEY') else 'rule-based-fallback'}
 
 @app.post('/api/ai/generate-project-idea', response_model=IdeaGeneratorOut)
@@ -187,6 +289,6 @@ async def generate_idea(data: IdeaGeneratorIn):
 
 @app.get('/api/projects/{pid}/report')
 def report(pid:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    p=owned_project(pid,user,db); ts=db.query(Task).filter(Task.project_id==pid).all(); ms=db.query(Member).filter(Member.project_id==pid).all()
+    p=accessible_project(pid,user,db); ts=db.query(Task).filter(Task.project_id==pid).all(); ms=db.query(Member).filter(Member.project_id==pid).all()
     done=sum(t.status=='done' for t in ts); overdue=sum(bool(t.deadline and t.deadline<date.today() and t.status!='done') for t in ts)
     return {'project':p.name,'generated_on':date.today().isoformat(),'summary':f'{done} dari {len(ts)} task selesai ({round(done/len(ts)*100) if ts else 0}%). {overdue} task terlambat.','total_tasks':len(ts),'completed':done,'overdue':overdue,'members':len(ms),'next_steps':['Tinjau task yang melewati deadline.','Pastikan setiap task memiliki penanggung jawab.','Perbarui progres dan estimasi waktu secara berkala.']}

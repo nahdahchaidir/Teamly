@@ -11,7 +11,7 @@ import {
   AlertCircle,
   ArrowLeft
 } from 'lucide-react';
-import api from './api';
+import api, { getApiErrorMessage } from './api';
 
 export default function AuthPage({
   initialMode = 'login',
@@ -24,6 +24,10 @@ export default function AuthPage({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [pendingCredentials, setPendingCredentials] = useState(null);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -33,116 +37,60 @@ export default function AuthPage({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setInfoMsg('');
     setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
+    try {
+      if (verificationPending) {
+        const res = await api.post('/auth/verify-email', {
+          email: pendingCredentials.email,
+          code: verificationCode.trim()
+        });
+        localStorage.setItem('tp_token', res.data.access_token);
+        localStorage.setItem('tp_user', JSON.stringify(res.data.user));
+        onSuccess(res.data.user, res.data.access_token);
+        return;
+      }
 
-    // 1. Check Admin login
-    if (mode === 'login' && cleanEmail === 'admin@teamly.com' && password === 'admin123') {
-      try {
+      if (mode === 'login') {
         const res = await api.post('/auth/login', { email: cleanEmail, password });
         localStorage.setItem('tp_token', res.data.access_token);
         localStorage.setItem('tp_user', JSON.stringify(res.data.user));
         onSuccess(res.data.user, res.data.access_token);
-        setLoading(false);
-        return;
-      } catch {
-        // Fallback local admin authentication if backend server is offline
-        const adminUser = { id: 1, name: 'Admin Teamly', email: 'admin@teamly.com', role: 'admin' };
-        const adminToken = 'admin_token_teamly_' + Date.now();
-        localStorage.setItem('tp_token', adminToken);
-        localStorage.setItem('tp_user', JSON.stringify(adminUser));
-        onSuccess(adminUser, adminToken);
-        setLoading(false);
-        return;
-      }
-    }
-
-    // 2. Standard Login / Register
-    try {
-      if (mode === 'login') {
-        try {
-          const res = await api.post('/auth/login', { email: cleanEmail, password });
-          localStorage.setItem('tp_token', res.data.access_token);
-          localStorage.setItem('tp_user', JSON.stringify(res.data.user));
-          onSuccess(res.data.user, res.data.access_token);
-          setLoading(false);
-          return;
-        } catch (apiErr) {
-          // If backend returned a 401 error
-          if (apiErr.response?.status === 401) {
-            const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
-            const matched = localUsers.find(u => u.email === cleanEmail && u.password === password);
-            if (matched) {
-              const localUser = { id: matched.id, name: matched.name, email: matched.email };
-              const localToken = 'local_token_' + matched.id;
-              localStorage.setItem('tp_token', localToken);
-              localStorage.setItem('tp_user', JSON.stringify(localUser));
-              onSuccess(localUser, localToken);
-              setLoading(false);
-              return;
-            }
-            setErrorMsg('Email atau kata sandi salah');
-            setLoading(false);
-            return;
-          }
-          // If offline / network error, check local registered accounts
-          const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
-          const matched = localUsers.find(u => u.email === cleanEmail && u.password === password);
-          if (matched) {
-            const localUser = { id: matched.id, name: matched.name, email: matched.email };
-            const localToken = 'local_token_' + matched.id;
-            localStorage.setItem('tp_token', localToken);
-            localStorage.setItem('tp_user', JSON.stringify(localUser));
-            onSuccess(localUser, localToken);
-            setLoading(false);
-            return;
-          }
-          setErrorMsg('Email atau password salah. Jika belum punya akun, silakan klik tab "Daftar Akun".');
-          setLoading(false);
-          return;
-        }
       } else {
-        // Mode REGISTER
         if (password.length < 8) {
           setErrorMsg('Password minimal 8 karakter');
-          setLoading(false);
           return;
         }
-
-        try {
-          const res = await api.post('/auth/register', { name, email: cleanEmail, password });
-          localStorage.setItem('tp_token', res.data.access_token);
-          localStorage.setItem('tp_user', JSON.stringify(res.data.user));
-          onSuccess(res.data.user, res.data.access_token);
-          setLoading(false);
-          return;
-        } catch (apiErr) {
-          if (apiErr.response?.data?.detail) {
-            setErrorMsg(apiErr.response.data.detail);
-            setLoading(false);
-            return;
-          }
-          // Backend offline fallback - save user locally
-          const localUsers = JSON.parse(localStorage.getItem('tp_registered_users') || '[]');
-          if (localUsers.some(u => u.email === cleanEmail)) {
-            setErrorMsg('Email sudah terdaftar. Silakan masuk.');
-            setLoading(false);
-            return;
-          }
-          const newUser = { id: Date.now(), name, email: cleanEmail };
-          localUsers.push({ ...newUser, password });
-          localStorage.setItem('tp_registered_users', JSON.stringify(localUsers));
-          const localToken = 'local_reg_token_' + newUser.id;
-          localStorage.setItem('tp_token', localToken);
-          localStorage.setItem('tp_user', JSON.stringify(newUser));
-          onSuccess(newUser, localToken);
-          setLoading(false);
-          return;
-        }
+        await api.post('/auth/register', { name, email: cleanEmail, password });
+        setPendingCredentials({ email: cleanEmail, password });
+        setVerificationPending(true);
+        setInfoMsg('Kode verifikasi telah dikirim ke email Anda.');
       }
-    } catch {
-      setErrorMsg('Gagal memproses permintaan. Periksa kembali isian form.');
+    } catch (apiErr) {
+      if (apiErr.response?.status === 403 && mode === 'login') {
+        setPendingCredentials({ email: cleanEmail, password });
+        setVerificationPending(true);
+        setErrorMsg('Email belum diverifikasi. Masukkan kode yang dikirim ke email Anda.');
+      } else {
+        setErrorMsg(getApiErrorMessage(apiErr, 'Gagal memproses permintaan. Periksa koneksi dan isian form.'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!pendingCredentials) return;
+    setErrorMsg('');
+    setInfoMsg('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/verification/resend', pendingCredentials);
+      setInfoMsg(res.data.message);
+    } catch (apiErr) {
+      setErrorMsg(getApiErrorMessage(apiErr, 'Gagal mengirim ulang kode verifikasi.'));
     } finally {
       setLoading(false);
     }
@@ -179,7 +127,11 @@ export default function AuthPage({
             <span className="welcome-ai-badge">AI</span>
           </div>
           <p className="auth-clean-sub">
-            {mode === 'login' ? 'Masuk untuk mengelola project & tugas kelompok' : 'Daftar akun baru untuk mulai berkolaborasi'}
+            {verificationPending
+              ? 'Verifikasi alamat email untuk mengaktifkan akun'
+              : mode === 'login'
+                ? 'Masuk untuk mengelola project & tugas kelompok'
+                : 'Daftar akun baru untuk mulai berkolaborasi'}
           </p>
         </div>
 
@@ -191,7 +143,7 @@ export default function AuthPage({
         )}
 
         {/* Segmented Switcher: Masuk | Daftar Akun */}
-        <div className="auth-clean-tabs">
+        {!verificationPending && <div className="auth-clean-tabs">
           <button
             type="button"
             className={`auth-tab-pill ${mode === 'login' ? 'active' : ''}`}
@@ -206,7 +158,7 @@ export default function AuthPage({
           >
             Daftar Akun
           </button>
-        </div>
+        </div>}
 
         {errorMsg && (
           <div className="auth-error-box">
@@ -214,10 +166,11 @@ export default function AuthPage({
             <span>{errorMsg}</span>
           </div>
         )}
+        {infoMsg && <div className="auth-verification-note">{infoMsg}</div>}
 
         {/* Minimal Clean Form */}
         <form onSubmit={handleSubmit} className="auth-actual-form">
-          {mode === 'register' && (
+          {!verificationPending && mode === 'register' && (
             <div className="auth-field-group">
               <label className="auth-field-label">Nama Lengkap</label>
               <div className="auth-input-wrap">
@@ -243,35 +196,57 @@ export default function AuthPage({
                 required
                 className="auth-text-input"
                 placeholder="nama@kampus.ac.id"
-                value={email}
+                value={verificationPending ? pendingCredentials?.email || email : email}
+                readOnly={verificationPending}
                 onChange={e => setEmail(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="auth-field-group">
-            <label className="auth-field-label">Kata Sandi</label>
-            <div className="auth-input-wrap">
-              <Lock size={16} className="auth-field-icon" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="auth-text-input"
-                placeholder={mode === 'register' ? 'Minimal 8 karakter' : 'Kata sandi Anda'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn-toggle-eye"
-                onClick={() => setShowPassword(prev => !prev)}
-                title={showPassword ? 'Sembunyikan sandi' : 'Lihat sandi'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+          {!verificationPending && (
+            <div className="auth-field-group">
+              <label className="auth-field-label">Kata Sandi</label>
+              <div className="auth-input-wrap">
+                <Lock size={16} className="auth-field-icon" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="auth-text-input"
+                  placeholder={mode === 'register' ? 'Minimal 8 karakter' : 'Kata sandi Anda'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn-toggle-eye"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  title={showPassword ? 'Sembunyikan sandi' : 'Lihat sandi'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
+            {verificationPending && (
+              <div className="auth-field-group">
+                <label className="auth-field-label">Kode Verifikasi Email</label>
+                <div className="auth-input-wrap">
+                  <Mail size={16} className="auth-field-icon" />
+                  <input
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    className="auth-text-input"
+                    placeholder="6 digit kode"
+                    value={verificationCode}
+                    onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  />
+                </div>
+              </div>
+            )}
           <button type="submit" className="btn-auth-submit" disabled={loading}>
             {loading ? (
               <>
@@ -280,11 +255,25 @@ export default function AuthPage({
               </>
             ) : (
               <>
-                <span>{mode === 'login' ? 'Masuk' : 'Daftar Sekarang'}</span>
+                <span>{verificationPending ? 'Verifikasi dan Masuk' : mode === 'login' ? 'Masuk' : 'Daftar Sekarang'}</span>
                 <ArrowRight size={16} />
               </>
             )}
           </button>
+          {verificationPending && (
+            <div className="auth-verification-actions">
+              <button type="button" className="btn-clean-guest" onClick={resendVerification} disabled={loading}>
+                Kirim ulang kode
+              </button>
+              <button
+                type="button"
+                className="btn-clean-guest"
+                onClick={() => { setVerificationPending(false); setVerificationCode(''); setErrorMsg(''); }}
+              >
+                Kembali ke masuk
+              </button>
+            </div>
+          )}
         </form>
 
         {/* Lanjut sebagai Guest */}

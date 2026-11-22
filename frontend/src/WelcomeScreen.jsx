@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Rocket, ArrowRight } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 
 export default function WelcomeScreen({ onOpenWorkspace }) {
   useEffect(() => {
@@ -41,17 +41,7 @@ export default function WelcomeScreen({ onOpenWorkspace }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn-splash-skip"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenWorkspace();
-          }}
-        >
-          <span>Masuk ke Dashboard</span>
-          <ArrowRight size={14} />
-        </button>
+
       </div>
     </div>
   );

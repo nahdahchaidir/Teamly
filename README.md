@@ -57,6 +57,7 @@ npm install
 npm run dev
 ```
 - Buka browser di: `http://localhost:5173`
+- Backend harus tetap berjalan saat masuk atau mendaftar. Jalankan `npm run dev` dari folder utama proyek untuk memulai backend dan frontend sekaligus. Jika frontend dipasang di hosting atau dibuka dari perangkat lain, atur `VITE_API_URL` ke alamat backend yang dapat dijangkau perangkat tersebut.
 
 *(Aplikasi langsung dapat dieksplorasi melalui **Mode Demo**).*
 
