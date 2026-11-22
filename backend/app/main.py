@@ -18,6 +18,7 @@ from .mailer import (
     send_email_async,
     send_test_email,
     send_task_assignment_notification,
+    send_task_update_notification,
     send_member_invitation_notification
 )
 
@@ -124,47 +125,65 @@ def health(): return {'status':'ok','app':'Teamly AI'}
 def register(data: RegisterIn, db: Session = Depends(get_db)):
     if len(data.password) < 8: raise HTTPException(400, 'Password minimal 8 karakter')
     email = str(data.email).lower().strip()
-    if db.query(User).filter(func.lower(User.email) == email).first(): raise HTTPException(409, 'Email sudah terdaftar')
+    existing_user = db.query(User).filter(func.lower(User.email) == email).first()
+    if existing_user:
+        raise HTTPException(409, f'Email "{email}" sudah terdaftar. Silakan pilih tab "Masuk".')
 
-    smtp_ready = is_smtp_configured()
+    # Buat user baru langsung aktif agar user tidak terblokir
     user = User(
         name=data.name.strip(),
         email=email,
         hashed_password=hash_password(data.password),
-        email_verified=not smtp_ready
+        email_verified=True
     )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
-    if smtp_ready:
-        prepare_verification(user)
-        db.add(user)
-        db.commit()
-        return {'message': 'Kode verifikasi telah dikirim ke email Anda.'}
-    else:
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        token = create_token(user.id)
-        return {
-            'message': 'Pendaftaran berhasil! Akun langsung aktif.',
-            'access_token': token,
-            'user': user,
-            'auto_login': True
-        }
+    # Otomatis tautkan record Member project yang mungkin sudah dibuat Project Leader dengan email ini
+    db.query(Member).filter(func.lower(Member.email) == email).update({Member.user_id: user.id}, synchronize_session=False)
+    db.commit()
+
+    # Kirim email sambutan pendaftaran via background thread jika SMTP aktif (tidak memblokir registrasi)
+    welcome_subject = f"[Teamly] Selamat Datang di Teamly, {user.name}! 🚀"
+    welcome_html = f"""<div style="font-family:Segoe UI,sans-serif;padding:24px;background:#f8fafc;border-radius:12px;">
+      <h2 style="color:#ea580c;margin-top:0;">Halo {user.name}, Akun Teamly Anda Siap Digunakan! 🚀</h2>
+      <p style="font-size:14px;color:#334155;line-height:1.5;">Akun Anda dengan alamat email <strong>{user.email}</strong> telah berhasil dibuat dan aktif.</p>
+      <p style="font-size:14px;color:#334155;line-height:1.5;">Anda sekarang dapat langsung berkolaborasi dalam project tugas kelompok, membagi tugas, dan berdiskusi melalui Teamly.</p>
+      <div style="margin-top:20px;">
+        <a href="http://localhost:5173" style="background:#ea580c;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Buka Teamly Workspace &rarr;</a>
+      </div>
+    </div>"""
+    send_email_async(user.email, welcome_subject, welcome_html, f"Halo {user.name}, akun Teamly Anda ({user.email}) telah berhasil dibuat dan aktif!")
+
+    token = create_token(user.id)
+    return {
+        'message': 'Pendaftaran berhasil! Akun langsung aktif.',
+        'access_token': token,
+        'user': user,
+        'auto_login': True
+    }
 
 @app.post('/api/auth/login', response_model=TokenOut)
 def login(data: LoginIn, db: Session = Depends(get_db)):
     email = str(data.email).lower().strip()
     user = db.query(User).filter(func.lower(User.email) == email).first()
-    if not user or not verify_password(data.password, user.hashed_password):
-        raise HTTPException(401, 'Email atau password salah')
+    if not user:
+        raise HTTPException(401, f'Akun dengan email "{email}" belum terdaftar. Silakan pilih tab "Daftar Akun" terlebih dahulu.')
+    if not verify_password(data.password, user.hashed_password):
+        raise HTTPException(401, 'Kata sandi salah. Pastikan huruf besar/kecil sudah sesuai.')
+    
+    # Pastikan akun langsung aktif
     if not user.email_verified:
-        if not is_smtp_configured():
-            user.email_verified = True
-            db.commit()
-            db.refresh(user)
-        else:
-            raise HTTPException(403, 'Email belum diverifikasi')
-    return {'access_token':create_token(user.id),'user':user}
+        user.email_verified = True
+        db.commit()
+        db.refresh(user)
+
+    # Otomatis hubungkan record Member yang memiliki email ini
+    db.query(Member).filter(func.lower(Member.email) == email, Member.user_id.is_(None)).update({Member.user_id: user.id}, synchronize_session=False)
+    db.commit()
+
+    return {'access_token': create_token(user.id), 'user': user}
 
 @app.post('/api/auth/verify-email', response_model=TokenOut)
 def verify_email(data: VerifyEmailIn, db: Session = Depends(get_db)):
@@ -172,33 +191,6 @@ def verify_email(data: VerifyEmailIn, db: Session = Depends(get_db)):
     user = db.query(User).filter(func.lower(User.email) == email).first()
     if not user:
         raise HTTPException(400, 'User tidak ditemukan')
-    if not is_smtp_configured():
-        user.email_verified = True
-        user.verification_code_hash = None
-        user.verification_expires_at = None
-        user.verification_attempts = 0
-        db.commit()
-        db.refresh(user)
-        return {'access_token': create_token(user.id), 'user': user}
-    if user.email_verified or not user.verification_code_hash:
-        raise HTTPException(400, 'Kode verifikasi tidak valid atau sudah kedaluwarsa')
-    if user.verification_attempts >= 5:
-        user.verification_code_hash = None
-        user.verification_expires_at = None
-        db.commit()
-        raise HTTPException(400, 'Batas percobaan tercapai. Minta kode verifikasi baru.')
-    if not user.verification_expires_at or user.verification_expires_at < datetime.utcnow():
-        user.verification_code_hash = None
-        user.verification_expires_at = None
-        db.commit()
-        raise HTTPException(400, 'Kode verifikasi tidak valid atau sudah kedaluwarsa')
-    if len(data.code) != 6 or not data.code.isdigit() or not verify_password(data.code, user.verification_code_hash):
-        user.verification_attempts += 1
-        if user.verification_attempts >= 5:
-            user.verification_code_hash = None
-            user.verification_expires_at = None
-        db.commit()
-        raise HTTPException(400, 'Kode verifikasi salah')
     user.email_verified = True
     user.verification_code_hash = None
     user.verification_expires_at = None
@@ -213,15 +205,9 @@ def resend_verification(data: ResendVerificationIn, db: Session = Depends(get_db
     user = db.query(User).filter(func.lower(User.email) == email).first()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(401, 'Email atau password salah')
-    if not is_smtp_configured():
-        user.email_verified = True
-        db.commit()
-        return {'message': 'Akun Anda telah otomatis diverifikasi. Silakan masuk.'}
-    if user.email_verified:
-        raise HTTPException(400, 'Email sudah diverifikasi. Silakan masuk.')
-    prepare_verification(user)
+    user.email_verified = True
     db.commit()
-    return {'message': 'Kode verifikasi baru telah dikirim ke email Anda.'}
+    return {'message': 'Akun Anda telah aktif. Silakan masuk.'}
 
 @app.get('/api/auth/me', response_model=UserOut)
 def me(user: User = Depends(current_user)): return user
@@ -439,22 +425,63 @@ def update_task(tid:int, data:dict, db:Session=Depends(get_db), user:User=Depend
     assignee_member = None
     if t.assignee_id:
         assignee_member = db.query(Member).filter(Member.id==t.assignee_id).first()
-        # Jika baru ditugaskan atau dialihkan ke member baru, kirim notifikasi email
-        if assignee_member and assignee_member.email and "@" in assignee_member.email and t.assignee_id != old_assignee_id:
+        if assignee_member and assignee_member.email and "@" in assignee_member.email:
             priority_map = {'low': 'Rendah', 'medium': 'Sedang', 'high': 'Tinggi / Urgent'}
-            send_task_assignment_notification(
-                member_name=assignee_member.name,
-                member_email=assignee_member.email,
-                task_title=t.title,
-                task_description=t.description or '-',
-                project_name=project.name,
-                leader_name=user.name,
-                priority=priority_map.get(t.priority, t.priority),
-                deadline=str(t.deadline) if t.deadline else 'Fleksibel'
-            )
+            status_map = {'todo': 'Belum Mulai', 'doing': 'Sedang Dikerjakan', 'review': 'Dalam Review', 'done': 'Selesai'}
+            # Jika baru ditugaskan ke member baru, kirim notifikasi penugasan baru
+            if t.assignee_id != old_assignee_id:
+                send_task_assignment_notification(
+                    member_name=assignee_member.name,
+                    member_email=assignee_member.email,
+                    task_title=t.title,
+                    task_description=t.description or '-',
+                    project_name=project.name,
+                    leader_name=user.name,
+                    priority=priority_map.get(t.priority, t.priority),
+                    deadline=str(t.deadline) if t.deadline else 'Fleksibel'
+                )
+            else:
+                # Jika member sama namun ada edit tugas / progres, kirim notifikasi pembaruan tugas
+                send_task_update_notification(
+                    member_name=assignee_member.name,
+                    member_email=assignee_member.email,
+                    task_title=t.title,
+                    task_description=t.description or '-',
+                    project_name=project.name,
+                    updater_name=user.name,
+                    status=status_map.get(t.status, t.status),
+                    priority=priority_map.get(t.priority, t.priority),
+                    deadline=str(t.deadline) if t.deadline else 'Fleksibel'
+                )
 
     email_note = f" (Email notifikasi terkirim ke {assignee_member.email})" if (assignee_member and assignee_member.email) else ""
     db.add(ActivityLog(project_id=t.project_id,task_id=t.id,actor=user.name,action=f'Tugas "{t.title}" diperbarui ke {t.status}{email_note}')); db.commit(); db.refresh(t); return t
+
+@app.post('/api/tasks/{tid}/notify')
+def notify_task_member(tid: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    t = db.get(Task, tid)
+    if not t: raise HTTPException(404, 'Task tidak ditemukan')
+    project = accessible_project(t.project_id, user, db)
+    if not t.assignee_id:
+        raise HTTPException(400, 'Tugas ini belum memiliki penanggung jawab')
+    m = db.query(Member).filter(Member.id == t.assignee_id).first()
+    if not m or not m.email or '@' not in m.email:
+        raise HTTPException(400, 'Anggota penanggung jawab belum memiliki email yang valid')
+    
+    priority_map = {'low': 'Rendah', 'medium': 'Sedang', 'high': 'Tinggi / Urgent'}
+    status_map = {'todo': 'Belum Mulai', 'doing': 'Sedang Dikerjakan', 'review': 'Dalam Review', 'done': 'Selesai'}
+    send_task_update_notification(
+        member_name=m.name,
+        member_email=m.email,
+        task_title=t.title,
+        task_description=t.description or '-',
+        project_name=project.name,
+        updater_name=user.name,
+        status=status_map.get(t.status, t.status),
+        priority=priority_map.get(t.priority, t.priority),
+        deadline=str(t.deadline) if t.deadline else 'Fleksibel'
+    )
+    return {'message': f'Notifikasi tugas berhasil dikirim ke {m.email}!'}
 
 @app.post('/api/test-email')
 def test_email_endpoint(data: dict = {}, user: User = Depends(current_user)):

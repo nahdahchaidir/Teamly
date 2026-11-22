@@ -2,6 +2,9 @@ import os
 import smtplib
 import threading
 from email.message import EmailMessage
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def is_smtp_configured() -> bool:
     host = (os.getenv('SMTP_HOST') or '').strip()
@@ -21,9 +24,10 @@ def send_email_async(to_email: str, subject: str, html_body: str, text_body: str
         password = os.getenv('SMTP_PASSWORD')
         sender = os.getenv('SMTP_FROM_EMAIL') or username
 
+        print(f"[GMAIL ATTEMPT] Mengirim notifikasi ke {to_email} | Subjek: {subject} | Pengirim: {sender}")
         if not is_smtp_configured():
             print(f"\n=======================================================")
-            print(f"[GMAIL NOTIFIKASI DEV - SMTP Belum Dikonfigurasi di .env]")
+            print(f"[GMAIL NOTIFIKASI DEV - SMTP Belum Dikonfigurasi Lengkap di .env]")
             print(f"Kepada: {to_email}")
             print(f"Subjek: {subject}")
             print(f"Ringkasan: {text_body[:120]}...")
@@ -40,7 +44,7 @@ def send_email_async(to_email: str, subject: str, html_body: str, text_body: str
             if html_body:
                 msg.add_alternative(html_body, subtype='html')
 
-            with smtplib.SMTP(host, port, timeout=12) as server:
+            with smtplib.SMTP(host, port, timeout=15) as server:
                 if os.getenv('SMTP_USE_TLS', 'true').lower() == 'true':
                     server.starttls()
                 if username and password:
@@ -152,6 +156,92 @@ def send_task_assignment_notification(
 
     <div style="text-align: center;">
       <a href="http://localhost:5173" class="btn">Buka Teamly Workspace &rarr;</a>
+    </div>
+  </div>
+  <div class="footer">
+    Notifikasi otomatis dari Teamly AI • Platform Kolaborasi Tugas Kelompok Mahasiswa
+  </div>
+</div>
+</body>
+</html>"""
+
+    send_email_async(member_email, subject, html_body, text_body)
+
+def send_task_update_notification(
+    member_name: str,
+    member_email: str,
+    task_title: str,
+    task_description: str,
+    project_name: str,
+    updater_name: str,
+    status: str = "Sedang Dikerjakan",
+    priority: str = "Sedang",
+    deadline: str = "Fleksibel"
+):
+    """Mengirimkan email notifikasi pembaruan / edit tugas kepada member kelompok."""
+    subject = f"[Teamly] 📝 Pembaruan Tugas: {task_title} ({project_name})"
+    
+    text_body = (
+        f"Halo {member_name},\n\n"
+        f"Tugas Anda '{task_title}' dalam project '{project_name}' baru saja diperbarui oleh {updater_name}:\n\n"
+        f"- Nama Tugas: {task_title}\n"
+        f"- Status Terkini: {status}\n"
+        f"- Prioritas: {priority.upper()}\n"
+        f"- Tenggat Waktu: {deadline}\n"
+        f"- Catatan: {task_description or '-'}\n\n"
+        f"Silakan buka Teamly Workspace untuk melihat detail perubahan dan berdiskusi melalui Ruang Chat Feedback.\n\n"
+        f"Salam,\nTeamly AI"
+    )
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }}
+  .card {{ max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
+  .header {{ background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 24px 28px; color: #ffffff; }}
+  .brand {{ font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }}
+  .badge {{ background: rgba(255,255,255,0.25); font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-left: 6px; font-weight: 700; }}
+  .content {{ padding: 28px; }}
+  .title {{ font-size: 18px; font-weight: 700; margin: 0 0 12px; color: #0f172a; }}
+  .sub {{ font-size: 14px; color: #475569; line-height: 1.5; margin: 0 0 20px; }}
+  .task-box {{ background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 18px; margin-bottom: 24px; }}
+  .task-title {{ font-size: 16px; font-weight: 700; color: #0369a1; margin-bottom: 12px; }}
+  .info-table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+  .info-table td {{ padding: 6px 0; }}
+  .info-label {{ font-weight: 600; width: 120px; color: #475569; }}
+  .status-tag {{ display: inline-block; background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; }}
+  .btn {{ display: inline-block; background: #0284c7; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 14px; text-align: center; }}
+  .footer {{ background: #fafaf9; border-top: 1px solid #f1f5f9; padding: 16px 28px; font-size: 11px; color: #94a3b8; text-align: center; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <span class="brand">Teamly</span><span class="badge">AI</span>
+  </div>
+  <div class="content">
+    <div class="title">📝 Pembaruan Tugas</div>
+    <p class="sub">Halo <strong>{member_name}</strong>, tugas Anda dalam project <strong>{project_name}</strong> baru saja diperbarui oleh <strong>{updater_name}</strong>.</p>
+    
+    <div class="task-box">
+      <div class="task-title">📌 {task_title}</div>
+      <table class="info-table">
+        <tr><td class="info-label">Project:</td><td><strong>{project_name}</strong></td></tr>
+        <tr><td class="info-label">Status Terkini:</td><td><span class="status-tag">{status}</span></td></tr>
+        <tr><td class="info-label">Prioritas:</td><td>{priority.upper()}</td></tr>
+        <tr><td class="info-label">Tenggat Waktu:</td><td>{deadline}</td></tr>
+        <tr><td class="info-label">Catatan:</td><td>{task_description or 'Tidak ada catatan tambahan'}</td></tr>
+      </table>
+    </div>
+
+    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 24px;">
+      Buka Teamly Workspace untuk meninjau perkembangan tugas atau kirimkan feedback diskusi kepada Project Leader.
+    </p>
+
+    <div style="text-align: center;">
+      <a href="http://localhost:5173" class="btn">Lihat Pembaruan di Teamly &rarr;</a>
     </div>
   </div>
   <div class="footer">

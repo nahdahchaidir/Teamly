@@ -1523,6 +1523,17 @@ export default function App() {
     }
   };
 
+  const handleNotifyTaskMember = async (taskId) => {
+    if (!taskId) return;
+    try {
+      notify('Mengirim email notifikasi rincian tugas ke member...');
+      const res = await api.post(`/tasks/${taskId}/notify`);
+      notify(res.data.message || 'Email notifikasi tugas berhasil dikirim!');
+    } catch (err) {
+      notify(getApiErrorMessage(err, 'Gagal mengirim notifikasi email ke member'));
+    }
+  };
+
   // ================= AUTH ACTIONS =================
 
   const handleAuth = async (e) => {
@@ -1556,6 +1567,7 @@ export default function App() {
         setModal('');
         setAuthModalPrompt('');
         notify('Berhasil masuk ke akun!');
+        loadBackendProjects();
       } else {
         if (passVal.length < 8) {
           notify('Kata sandi minimal 8 karakter');
@@ -1571,6 +1583,7 @@ export default function App() {
           setModal('');
           setAuthModalPrompt('');
           notify('Pendaftaran berhasil! Selamat datang!');
+          loadBackendProjects();
           return;
         }
         setPendingCredentials({ email: emailVal, password: passVal });
@@ -3187,13 +3200,16 @@ export default function App() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Penanggung Jawab</label>
+                  <label className="form-label">Penanggung Jawab (Member)</label>
                   <select name="assignee_id" className="form-select">
                     <option value="">Belum Ditugaskan</option>
                     {currentProjectMembers.map(m => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                      <option key={m.id} value={m.id}>{m.name} ({m.role}){m.email ? ` - ${m.email}` : ''}</option>
                     ))}
                   </select>
+                  <small style={{ fontSize: 11, color: '#ea580c', marginTop: 4, display: 'block' }}>
+                    ✉️ Notifikasi detail tugas akan otomatis dikirimkan ke email Gmail member yang dipilih.
+                  </small>
                 </div>
               </div>
 
@@ -3222,12 +3238,17 @@ export default function App() {
                 />
               </div>
 
+              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#9a3412' }}>
+                <span style={{ fontSize: '16px' }}>📧</span>
+                <span>Saat tugas dibuat, rincian tugas (judul, prioritas, deadline, deskripsi) otomatis terkirim ke email Gmail member penanggung jawab.</span>
+              </div>
+
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setModal('')}>
                   Batal
                 </button>
                 <button type="submit" className="btn-primary">
-                  Simpan Tugas
+                  Simpan Tugas & Kirim Email
                 </button>
               </div>
             </form>
@@ -3331,9 +3352,12 @@ export default function App() {
                     <select name="assignee_id" className="form-select" defaultValue={selectedTask.assignee_id || ''} disabled={isMember}>
                       <option value="">Belum Ditugaskan</option>
                       {currentProjectMembers.map(m => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                        <option key={m.id} value={m.id}>{m.name} ({m.role}){m.email ? ` - ${m.email}` : ''}</option>
                       ))}
                     </select>
+                    <small style={{ fontSize: 11, color: '#0284c7', marginTop: 4, display: 'block' }}>
+                      ✉️ Member akan menerima email notifikasi setiap kali detail atau progres tugas ini diperbarui.
+                    </small>
                   </div>
                 </div>
 
@@ -3371,7 +3395,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="modal-actions" style={{ marginTop: '20px' }}>
+                <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                   <button
                     type="button"
                     className="btn-cancel"
@@ -3379,9 +3403,22 @@ export default function App() {
                   >
                     Batal
                   </button>
-                  <button type="submit" className="btn-primary">
-                    {isMember ? 'Simpan Progres Tugas' : 'Perbarui Tugas'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {selectedTask.assignee_id && (
+                      <button
+                        type="button"
+                        className="btn-ghost-sm"
+                        style={{ background: '#f0f9ff', borderColor: '#7dd3fc', color: '#0369a1', fontWeight: 600, padding: '7px 14px' }}
+                        onClick={() => handleNotifyTaskMember(selectedTask.id)}
+                        title="Kirim rincian tugas ini langsung ke email Gmail member"
+                      >
+                        ✉️ Kirim Email ke Member
+                      </button>
+                    )}
+                    <button type="submit" className="btn-primary">
+                      {isMember ? 'Simpan Progres Tugas' : 'Perbarui Tugas & Kirim Notif'}
+                    </button>
+                  </div>
                 </div>
               </form>
             )}
