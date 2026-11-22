@@ -1432,10 +1432,21 @@ export default function App() {
           notify('Kata sandi minimal 8 karakter');
           return;
         }
-        await api.post('/auth/register', { name: nameVal, email: emailVal, password: passVal });
+        const r = await api.post('/auth/register', { name: nameVal, email: emailVal, password: passVal });
+        if (r.data.access_token && r.data.user) {
+          localStorage.setItem('tp_token', r.data.access_token);
+          localStorage.setItem('tp_user', JSON.stringify(r.data.user));
+          setToken(r.data.access_token);
+          setUser(r.data.user);
+          setDemo(false);
+          setModal('');
+          setAuthModalPrompt('');
+          notify('Pendaftaran berhasil! Selamat datang!');
+          return;
+        }
         setPendingCredentials({ email: emailVal, password: passVal });
         setAuthMode('verify');
-        notify('Kode verifikasi dikirim. Masukkan kode dari email Anda.');
+        notify(r.data.message || 'Kode verifikasi dikirim. Masukkan kode dari email Anda.');
       }
     } catch (apiErr) {
       if (apiErr.response?.status === 403 && authMode === 'login') {

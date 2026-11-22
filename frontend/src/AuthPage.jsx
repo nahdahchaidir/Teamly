@@ -63,10 +63,16 @@ export default function AuthPage({
           setErrorMsg('Password minimal 8 karakter');
           return;
         }
-        await api.post('/auth/register', { name, email: cleanEmail, password });
+        const res = await api.post('/auth/register', { name, email: cleanEmail, password });
+        if (res.data.access_token && res.data.user) {
+          localStorage.setItem('tp_token', res.data.access_token);
+          localStorage.setItem('tp_user', JSON.stringify(res.data.user));
+          onSuccess(res.data.user, res.data.access_token);
+          return;
+        }
         setPendingCredentials({ email: cleanEmail, password });
         setVerificationPending(true);
-        setInfoMsg('Kode verifikasi telah dikirim ke email Anda.');
+        setInfoMsg(res.data.message || 'Kode verifikasi telah dikirim ke email Anda.');
       }
     } catch (apiErr) {
       if (apiErr.response?.status === 403 && mode === 'login') {
